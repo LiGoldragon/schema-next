@@ -1,8 +1,11 @@
 use std::path::Path;
 
-use nota::{Block, Delimiter, Document, NotaDecodeError};
+use dotos::{Block, Delimiter, Document, DotosDecodeError};
 
-use crate::{Name, SchemaError, macros::SchemaBlockExt};
+use crate::{
+    Name, SchemaError,
+    macros::{BlockDebug, SchemaBlockExt},
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RawSchemaFile {
@@ -35,39 +38,27 @@ impl RawDatatypeMap {
     /// Read the datatype map as a sequence of dotted `key.datatype` entries,
     /// walking by how many blocks each entry consumes rather than pairing by a
     /// fixed stride. This is the raw, pre-semantic reflection layer: its keys are
-    /// arbitrary NOTA atoms — capitalized type names at the top level, lowercase
+    /// arbitrary DOTOS atoms — capitalized type names at the top level, lowercase
     /// field roles inside a record — so the split is decided by the first
-    /// top-level dot alone, through the shared NOTA split primitive, without the
+    /// top-level dot alone, through the shared DOTOS split primitive, without the
     /// case gate that the two semantic dotted expectations apply.
     pub fn from_blocks(objects: &[Block]) -> Result<Self, SchemaError> {
         let mut entries = Vec::new();
         let mut index = 0;
         while index < objects.len() {
-            let atom = objects[index].atom().ok_or_else(|| {
-                SchemaError::from(NotaDecodeError::ExpectedDottedEntry {
-                    expectation: Self::ENTRY_EXPECTATION,
-                })
-            })?;
-            let (prefix, remainder) = atom.split_at_first_dot().ok_or_else(|| {
-                SchemaError::from(NotaDecodeError::ExpectedDottedEntry {
-                    expectation: Self::ENTRY_EXPECTATION,
-                })
-            })?;
-            let name = Block::Atom(prefix).schema_name()?;
-            let (value, consumed) = match remainder {
-                Some(value_atom) => (Block::Atom(value_atom), 1),
-                None => {
-                    let value = objects.get(index + 1).cloned().ok_or_else(|| {
-                        SchemaError::from(NotaDecodeError::DottedEntryMissingValue {
-                            expectation: Self::ENTRY_EXPECTATION,
-                        })
-                    })?;
-                    (value, 2)
+            let (name, value, consumed) = match &objects[index] {
+                Block::Application { head, payload, .. } => {
+                    (head.schema_name()?, (**payload).clone(), 1)
+                }
+                _ => {
+                    return Err(SchemaError::from(DotosDecodeError::ExpectedDottedEntry {
+                        expectation: Self::ENTRY_EXPECTATION,
+                    }));
                 }
             };
             entries.push(RawDatatypeEntry {
                 name,
-                datatype: RawNotaDatatype::from_block(&value)?,
+                datatype: RawDotosDatatype::from_block(&value)?,
             });
             index += consumed;
         }
@@ -80,7 +71,7 @@ impl RawDatatypeMap {
         &self.entries
     }
 
-    pub fn datatype_named(&self, name: &str) -> Option<&RawNotaDatatype> {
+    pub fn datatype_named(&self, name: &str) -> Option<&RawDotosDatatype> {
         self.entries
             .iter()
             .find(|entry| entry.name.as_str() == name)
@@ -91,7 +82,7 @@ impl RawDatatypeMap {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RawDatatypeEntry {
     name: Name,
-    datatype: RawNotaDatatype,
+    datatype: RawDotosDatatype,
 }
 
 impl RawDatatypeEntry {
@@ -99,21 +90,21 @@ impl RawDatatypeEntry {
         &self.name
     }
 
-    pub fn datatype(&self) -> &RawNotaDatatype {
+    pub fn datatype(&self) -> &RawDotosDatatype {
         &self.datatype
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum RawNotaDatatype {
+pub enum RawDotosDatatype {
     Atom(String),
     Text(String),
-    Record(RawNotaSequence),
-    Vector(RawNotaSequence),
+    Record(RawDotosSequence),
+    Vector(RawDotosSequence),
     KeyValue(RawDatatypeMap),
 }
 
-impl RawNotaDatatype {
+impl RawDotosDatatype {
     pub fn from_block(block: &Block) -> Result<Self, SchemaError> {
         match block {
             Block::Atom(atom) => Ok(Self::Atom(atom.text().to_owned())),
@@ -122,17 +113,28 @@ impl RawNotaDatatype {
                 delimiter: Delimiter::Parenthesis,
                 root_objects,
                 ..
-            } => Ok(Self::Record(RawNotaSequence::from_blocks(root_objects)?)),
+            } => Ok(Self::Record(RawDotosSequence::from_blocks(root_objects)?)),
             Block::Delimited {
                 delimiter: Delimiter::SquareBracket,
                 root_objects,
                 ..
-            } => Ok(Self::Vector(RawNotaSequence::from_blocks(root_objects)?)),
+            } => Ok(Self::Vector(RawDotosSequence::from_blocks(root_objects)?)),
             Block::Delimited {
                 delimiter: Delimiter::Brace,
                 root_objects,
                 ..
             } => Ok(Self::KeyValue(RawDatatypeMap::from_blocks(root_objects)?)),
+            Block::Delimited {
+                delimiter: Delimiter::PipeParenthesis | Delimiter::PipeBrace,
+                ..
+            } => Err(SchemaError::ExpectedSyntaxReference {
+                found: block.reemit_fallback(),
+            }),
+            Block::Application { .. } => block.dotted_text().map(Self::Atom).ok_or_else(|| {
+                SchemaError::ExpectedSyntaxReference {
+                    found: block.reemit_fallback(),
+                }
+            }),
         }
     }
 
@@ -150,14 +152,14 @@ impl RawNotaDatatype {
         }
     }
 
-    pub fn as_record(&self) -> Option<&RawNotaSequence> {
+    pub fn as_record(&self) -> Option<&RawDotosSequence> {
         match self {
             Self::Record(sequence) => Some(sequence),
             Self::Atom(_) | Self::Text(_) | Self::Vector(_) | Self::KeyValue(_) => None,
         }
     }
 
-    pub fn as_vector(&self) -> Option<&RawNotaSequence> {
+    pub fn as_vector(&self) -> Option<&RawDotosSequence> {
         match self {
             Self::Vector(sequence) => Some(sequence),
             Self::Atom(_) | Self::Text(_) | Self::Record(_) | Self::KeyValue(_) => None,
@@ -173,20 +175,20 @@ impl RawNotaDatatype {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RawNotaSequence {
-    items: Vec<RawNotaDatatype>,
+pub struct RawDotosSequence {
+    items: Vec<RawDotosDatatype>,
 }
 
-impl RawNotaSequence {
+impl RawDotosSequence {
     pub fn from_blocks(objects: &[Block]) -> Result<Self, SchemaError> {
         let mut items = Vec::new();
         for object in objects {
-            items.push(RawNotaDatatype::from_block(object)?);
+            items.push(RawDotosDatatype::from_block(object)?);
         }
         Ok(Self { items })
     }
 
-    pub fn items(&self) -> &[RawNotaDatatype] {
+    pub fn items(&self) -> &[RawDotosDatatype] {
         &self.items
     }
 }

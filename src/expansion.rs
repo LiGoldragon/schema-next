@@ -1,11 +1,11 @@
-use nota::{Block, Delimiter, Document, StructuralMacroNode};
+use dotos::{Block, Delimiter, Document, StructuralMacroNode};
 
 use crate::{
     MacroContext, MacroObject, MacroOutput, MacroPair, MacroPosition, MacroRegistry, SchemaError,
     macros::SchemaBlockExt, source::SchemaDocumentLayout,
 };
 
-/// The c2dc front-end pass: the NOTA decoder, once parsed into a document, is
+/// The c2dc front-end pass: the DOTOS decoder, once parsed into a document, is
 /// extended by the registry of registered macros dispatched as an ordered
 /// list (first match wins). This pass runs that dispatch over the parsed
 /// document BEFORE [`crate::SchemaSource::from_document`] builds the rkyv
@@ -45,7 +45,7 @@ impl<'registry> MacroExpansionPass<'registry> {
     /// macro-expanded re-parse; `context` accumulates the recorded firings and
     /// bindings. The entry contract is the strict six-slot document layout
     /// shared with the source path; grouped dotted root applications occupy one
-    /// typed slot even when raw NOTA currently parses them as two blocks.
+    /// typed slot even when DOTOS parses their dotted application as one block.
     pub(crate) fn expand(
         &self,
         document: &Document,
@@ -145,7 +145,7 @@ impl<'registry> MacroExpansionPass<'registry> {
         Ok(())
     }
 
-    /// Re-emit one block as NOTA, expanding any user type-reference macro
+    /// Re-emit one block as DOTOS, expanding any user type-reference macro
     /// invocation it (or a descendant) is. A parenthesis whose head matches a
     /// registered type-reference macro lowers through that macro's own
     /// capture/substitution and re-emits as its expanded body; every other
@@ -177,6 +177,11 @@ impl<'registry> MacroExpansionPass<'registry> {
                 Ok(DelimiterText::new(*delimiter).wrap(&children))
             }
             Block::PipeText(pipe_text) => Ok(format!("[|{}|]", pipe_text.text)),
+            Block::Application { head, payload, .. } => Ok(format!(
+                "{}.{}",
+                self.expand_block(head, context)?,
+                self.expand_block(payload, context)?
+            )),
             Block::Atom(atom) => Ok(atom.text().to_owned()),
         }
     }
@@ -191,7 +196,7 @@ impl<'registry> MacroExpansionPass<'registry> {
             MacroPosition::TypeReference,
             context,
         )? {
-            MacroOutput::Reference(reference) => Ok(reference.to_structural_nota()),
+            MacroOutput::Reference(reference) => Ok(reference.to_structural_dotos()),
             _ => Err(SchemaError::UnexpectedMacroOutput {
                 macro_name: block
                     .root_object_at(0)
@@ -227,6 +232,12 @@ impl<'schema> NamespacePairWalk<'schema> {
     fn next_pair(&mut self) -> Option<MacroPair<'schema>> {
         let head = self.objects.get(self.cursor)?;
         self.cursor += 1;
+        if let Block::Application { head, payload, .. } = head {
+            return Some(MacroPair {
+                name: head,
+                definition: payload,
+            });
+        }
         let ends_at_dot = matches!(head, Block::Atom(atom) if atom.text().ends_with('.'));
         let definition = if ends_at_dot {
             match self.objects.get(self.cursor) {
@@ -246,7 +257,7 @@ impl<'schema> NamespacePairWalk<'schema> {
     }
 }
 
-/// The NOTA delimiter pair text, used to re-emit an expanded block tree as a
+/// The DOTOS delimiter pair text, used to re-emit an expanded block tree as a
 /// source string the document re-parser reads back.
 #[derive(Clone, Copy, Debug)]
 struct DelimiterText {
@@ -267,6 +278,8 @@ impl DelimiterText {
             Delimiter::Parenthesis => "(",
             Delimiter::SquareBracket => "[",
             Delimiter::Brace => "{",
+            Delimiter::PipeParenthesis => "(|",
+            Delimiter::PipeBrace => "{|",
         }
     }
 
@@ -275,6 +288,8 @@ impl DelimiterText {
             Delimiter::Parenthesis => ")",
             Delimiter::SquareBracket => "]",
             Delimiter::Brace => "}",
+            Delimiter::PipeParenthesis => "|)",
+            Delimiter::PipeBrace => "|}",
         }
     }
 }

@@ -230,7 +230,7 @@ fn redundant_dot_field_roles_are_rejected() {
 
 #[test]
 fn optional_enum_variant_payload_is_rejected() {
-    // Strict positional NOTA: a variant payload always occupies the text
+    // Strict positional DOTOS: a variant payload always occupies the text
     // form, so `Optional.T` is forbidden as a variant payload. The optional
     // case must instead be modeled as an explicit member carrying a required
     // payload (for example a leaf enum with an explicit `All` member). Named
@@ -298,7 +298,7 @@ fn brace_namespace_rejects_parenthesized_named_objects() {
         error,
         schema::SchemaError::ExpectedSyntaxDeclaration { .. }
             | schema::SchemaError::ExpectedSymbol { .. }
-            | schema::SchemaError::NotaDecode(_)
+            | schema::SchemaError::DotosDecode(_)
             | schema::SchemaError::ExpectedDelimiter { .. }
             | schema::SchemaError::MacroDidNotMatch { .. }
             | schema::SchemaError::UnsupportedMacroNodeStructure { .. }
@@ -319,7 +319,7 @@ fn brace_namespace_rejects_redundant_key_value_declarations() {
         error,
         schema::SchemaError::ExpectedSyntaxDeclaration { .. }
             | schema::SchemaError::ExpectedSymbol { .. }
-            | schema::SchemaError::NotaDecode(_)
+            | schema::SchemaError::DotosDecode(_)
             | schema::SchemaError::ExpectedDelimiter { .. }
             | schema::SchemaError::UnsupportedMacroNodeStructure { .. }
     ));
@@ -698,7 +698,7 @@ fn macro_lowering_receives_macro_position() {
         }
     }
 
-    let document = nota::Document::parse("(Input)").expect("nota parses");
+    let document = dotos::Document::parse("(Input)").expect("dotos parses");
     let mut context = MacroContext::default();
     let object = document.root_object_at(0).expect("root object");
     let probe = ProbeMacro;
@@ -1018,6 +1018,6 @@ fn root_enum_positions_supply_input_and_output_names() {
         schema::SchemaError::UnsupportedMacroNodeStructure { .. }
             | schema::SchemaError::MacroDidNotMatch { .. }
             | schema::SchemaError::ExpectedRootApplication { .. }
-            | schema::SchemaError::NotaDecode(_)
+            | schema::SchemaError::DotosDecode(_)
     ));
 }

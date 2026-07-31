@@ -1,4 +1,4 @@
-use nota::StructuralMacroNode;
+use dotos::StructuralMacroNode;
 use schema::{
     MacroContext, MacroLibrary, MacroRegistry, SchemaEngine, SchemaError, SchemaIdentity,
     TypeDeclaration, TypeReference,
@@ -24,7 +24,7 @@ fn public_type_reference_reader_rejects_parenthesized_builtin_applications() {
         "(Map Topic RecordIdentifier)",
         "(Bytes 32)",
     ] {
-        let error = TypeReference::from_structural_nota(source)
+        let error = TypeReference::from_structural_dotos(source)
             .expect_err("parenthesized builtin reference is not public syntax");
         assert!(
             matches!(
@@ -90,7 +90,7 @@ fn macro_reference_templates_use_dotted_reader_and_reject_old_builtin_body() {
 #[test]
 fn macro_reference_templates_accept_dotted_builtin_body() {
     let user_macros = MacroLibrary::from_source(
-        "(SchemaMacro Bag TypeReference (Bag $Type) (Reference Vector. $Type))",
+        "(SchemaMacro Bag TypeReference (Bag $Type) (Reference Vector.$Type))",
     )
     .expect("dotted macro definition parses");
     let mut registry = MacroRegistry::with_schema_defaults();
@@ -122,7 +122,7 @@ fn generated_parenthesized_resolver_artifacts_are_absent() {
     for retired_path in [
         "build.rs",
         "src/reference_resolver_generated.rs",
-        "schemas/reference-grammar.nota",
+        "schemas/reference-grammar.dotos",
         "schema-cc",
     ] {
         assert!(

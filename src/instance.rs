@@ -1,11 +1,11 @@
 //! Rendering the per-instance schema trace through the schema encoder.
 //!
-//! nota's decoder captures an [`InstanceSchema`](nota::InstanceSchema)
+//! dotos's decoder captures an [`InstanceSchema`](dotos::InstanceSchema)
 //! while it validates a value: at every position it records the
-//! [`TypeReference`](nota::TypeReference) it expected. This module projects
+//! [`TypeReference`](dotos::TypeReference) it expected. This module projects
 //! that trace into schema text. Every *reference* token is produced by
 //! [`SourceReference::rendered_schema_text`] — the one schema encoder — and the
-//! structural delimiters come from nota's [`Delimiter`]. There is no
+//! structural delimiters come from dotos's [`Delimiter`]. There is no
 //! hand-written schema printer here: the renderer only chooses delimiters and
 //! delegates token rendering to the encoder.
 //!
@@ -26,7 +26,7 @@
 //! the variant — `Partial`, `Record`) to provenance: the rendered token is the
 //! wrapped reference, never the wrapper.
 
-use nota::{Delimiter, InstanceSchema, InstanceSchemaBody};
+use dotos::{Delimiter, InstanceSchema, InstanceSchemaBody};
 
 use crate::SourceReference;
 

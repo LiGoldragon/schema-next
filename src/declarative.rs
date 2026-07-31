@@ -3,8 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use nota::{
-    Block, Delimiter, Document, MacroCandidate, NotaEncode, NotaSource, PositionPredicate,
+use dotos::{
+    Block, Delimiter, Document, DotosEncode, DotosSource, MacroCandidate, PositionPredicate,
     StructuralMacroError, StructuralMacroNode, StructuralVariant,
 };
 
@@ -18,8 +18,8 @@ use crate::{
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -35,7 +35,7 @@ impl MacroLibrary {
     }
 
     pub fn builtin() -> Result<Self, SchemaError> {
-        Self::from_nota_source(include_str!("../schemas/builtin-macros.macro-library"))
+        Self::from_dotos_source(include_str!("../schemas/builtin-macros.macro-library"))
     }
 
     pub fn builtin_source() -> Result<Self, SchemaError> {
@@ -59,7 +59,7 @@ impl MacroLibrary {
     pub fn to_source(&self) -> String {
         self.source_entries
             .iter()
-            .map(StructuralMacroNode::to_structural_nota)
+            .map(StructuralMacroNode::to_structural_dotos)
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -82,12 +82,12 @@ impl MacroLibrary {
             .collect()
     }
 
-    pub fn from_nota_source(source: &str) -> Result<Self, SchemaError> {
-        NotaSource::new(source).parse::<Self>().map_err(Into::into)
+    pub fn from_dotos_source(source: &str) -> Result<Self, SchemaError> {
+        DotosSource::new(source).parse::<Self>().map_err(Into::into)
     }
 
-    pub fn to_nota_source(&self) -> String {
-        NotaEncode::to_nota(self)
+    pub fn to_dotos_source(&self) -> String {
+        DotosEncode::to_dotos(self)
     }
 
     pub fn from_binary_bytes(bytes: &[u8]) -> Result<Self, SchemaError> {
@@ -119,12 +119,12 @@ impl MacroLibraryArtifact {
         self.library
     }
 
-    pub fn from_nota_source(source: &str) -> Result<Self, SchemaError> {
-        MacroLibrary::from_nota_source(source).map(Self::new)
+    pub fn from_dotos_source(source: &str) -> Result<Self, SchemaError> {
+        MacroLibrary::from_dotos_source(source).map(Self::new)
     }
 
-    pub fn to_nota_source(&self) -> String {
-        self.library.to_nota_source()
+    pub fn to_dotos_source(&self) -> String {
+        self.library.to_dotos_source()
     }
 
     pub fn from_binary_bytes(bytes: &[u8]) -> Result<Self, SchemaError> {
@@ -135,16 +135,16 @@ impl MacroLibraryArtifact {
         self.library.to_binary_bytes()
     }
 
-    pub fn read_nota_file(path: impl AsRef<Path>) -> Result<Self, SchemaError> {
+    pub fn read_dotos_file(path: impl AsRef<Path>) -> Result<Self, SchemaError> {
         let artifact_path = MacroLibraryArtifactPath::new(path.as_ref());
         let source = fs::read_to_string(artifact_path.path())
             .map_err(|error| artifact_path.io_error(error))?;
-        Self::from_nota_source(&source)
+        Self::from_dotos_source(&source)
     }
 
-    pub fn write_nota_file(&self, path: impl AsRef<Path>) -> Result<(), SchemaError> {
+    pub fn write_dotos_file(&self, path: impl AsRef<Path>) -> Result<(), SchemaError> {
         let artifact_path = MacroLibraryArtifactPath::new(path.as_ref());
-        fs::write(artifact_path.path(), self.to_nota_source())
+        fs::write(artifact_path.path(), self.to_dotos_source())
             .map_err(|error| artifact_path.io_error(error))
     }
 
@@ -190,8 +190,8 @@ impl MacroLibraryArtifactPath {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -286,13 +286,13 @@ impl StructuralMacroNode for SchemaMacro {
         }
     }
 
-    fn to_structural_nota(&self) -> String {
+    fn to_structural_dotos(&self) -> String {
         format!(
             "{} {} {} {}",
-            self.macro_name.to_nota(),
-            self.macro_position.to_structural_nota(),
-            self.macro_pattern.to_structural_nota(),
-            self.macro_template.to_structural_nota(),
+            self.macro_name.to_dotos(),
+            self.macro_position.to_structural_dotos(),
+            self.macro_pattern.to_structural_dotos(),
+            self.macro_template.to_structural_dotos(),
         )
     }
 }
@@ -301,8 +301,8 @@ impl StructuralMacroNode for SchemaMacro {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -348,7 +348,7 @@ impl MacroPattern {
 }
 
 /// The pattern position of a bootstrap macro definition. The pattern object
-/// is a structural mirror of one NOTA object with `$name` / `$*name` capture
+/// is a structural mirror of one DOTOS object with `$name` / `$*name` capture
 /// atoms, so the leaf codec accepts any delimiter shape and encodes the same
 /// sigil notation back out.
 impl StructuralMacroNode for MacroPattern {
@@ -377,8 +377,8 @@ impl StructuralMacroNode for MacroPattern {
         }
     }
 
-    fn to_structural_nota(&self) -> String {
-        self.object.to_source_notation()
+    fn to_structural_dotos(&self) -> String {
+        self.object.to_source_dotos()
     }
 }
 
@@ -386,8 +386,8 @@ impl StructuralMacroNode for MacroPattern {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -433,11 +433,14 @@ impl MacroPatternObject {
                     children.push(Self::from_block(child)?);
                 }
                 Ok(Self::Delimited(Box::new(MacroPatternDelimited::new(
-                    MacroDelimiter::from_nota(*delimiter),
+                    MacroDelimiter::from_dotos(*delimiter),
                     children,
                 ))))
             }
             Block::PipeText(_) => Ok(Self::Atom(NotationBlock::new(object).compact_notation())),
+            Block::Application { .. } => {
+                Ok(Self::Atom(NotationBlock::new(object).compact_notation()))
+            }
             Block::Atom(_) => unreachable!("atoms are handled by demote_to_string"),
         }
     }
@@ -471,7 +474,7 @@ impl MacroPatternObject {
                     delimiter,
                     root_objects,
                     ..
-                } if *delimiter == data.delimiter().into_nota() => {
+                } if *delimiter == data.delimiter().into_dotos() => {
                     PatternChildren::new(data.children()).matches(root_objects, bindings)
                 }
                 _ => Ok(false),
@@ -499,17 +502,17 @@ impl MacroPatternObject {
         }
     }
 
-    fn to_source_notation(&self) -> String {
+    fn to_source_dotos(&self) -> String {
         match self {
             Self::Capture(name) => format!("${name}"),
             Self::RestCapture(name) => format!("$*{name}"),
             Self::Atom(text) => text.clone(),
-            Self::Delimited(data) => DelimitedNotation::new(data.delimiter().into_nota())
+            Self::Delimited(data) => DelimitedNotation::new(data.delimiter().into_dotos())
                 .wrap_children(
                     &data
                         .children()
                         .iter()
-                        .map(Self::to_source_notation)
+                        .map(Self::to_source_dotos)
                         .collect::<Vec<_>>(),
                 ),
         }
@@ -520,8 +523,8 @@ impl MacroPatternObject {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -568,9 +571,9 @@ impl MacroPatternDelimited {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
-    nota::StructuralMacroNode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
+    dotos::StructuralMacroNode,
     Clone,
     Debug,
     Eq,
@@ -666,9 +669,9 @@ impl MacroTemplate {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
-    nota::StructuralMacroNode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
+    dotos::StructuralMacroNode,
     Clone,
     Debug,
     Eq,
@@ -788,8 +791,8 @@ impl ExpandedNotation {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -810,6 +813,10 @@ pub enum MacroTemplateObject {
     Capture(String),
     RestCapture(String),
     Atom(String),
+    Application(
+        #[rkyv(omit_bounds)] Box<MacroTemplateObject>,
+        #[rkyv(omit_bounds)] Box<MacroTemplateObject>,
+    ),
     Delimited(#[rkyv(omit_bounds)] Box<MacroTemplateDelimited>),
 }
 
@@ -835,11 +842,15 @@ impl MacroTemplateObject {
                     children.push(Self::from_block(child)?);
                 }
                 Ok(Self::Delimited(Box::new(MacroTemplateDelimited::new(
-                    MacroDelimiter::from_nota(*delimiter),
+                    MacroDelimiter::from_dotos(*delimiter),
                     children,
                 ))))
             }
             Block::PipeText(_) => Ok(Self::Atom(NotationBlock::new(object).compact_notation())),
+            Block::Application { head, payload, .. } => Ok(Self::Application(
+                Box::new(Self::from_block(head)?),
+                Box::new(Self::from_block(payload)?),
+            )),
             Block::Atom(_) => unreachable!("atoms are handled by demote_to_string"),
         }
     }
@@ -856,13 +867,17 @@ impl MacroTemplateObject {
                 .map(ExpandedObject::Captured)
                 .collect()),
             Self::Atom(text) => Ok(vec![ExpandedObject::Atom(text.clone())]),
+            Self::Application(head, payload) => Ok(vec![ExpandedObject::Application {
+                head: Box::new(head.expand_single(bindings, "application head")?),
+                payload: Box::new(payload.expand_single(bindings, "application payload")?),
+            }]),
             Self::Delimited(data) => {
                 let mut expanded_children = Vec::new();
                 for child in data.children() {
                     expanded_children.extend(child.expand_objects(bindings)?);
                 }
                 Ok(vec![ExpandedObject::Delimited {
-                    delimiter: data.delimiter().into_nota(),
+                    delimiter: data.delimiter().into_dotos(),
                     children: expanded_children,
                 }])
             }
@@ -893,17 +908,20 @@ impl MacroTemplateObject {
         self.expand_single(bindings, position)?.schema_name()
     }
 
-    fn to_source_notation(&self) -> String {
+    fn to_source_dotos(&self) -> String {
         match self {
             Self::Capture(name) => format!("${name}"),
             Self::RestCapture(name) => format!("$*{name}"),
             Self::Atom(text) => text.clone(),
-            Self::Delimited(data) => DelimitedNotation::new(data.delimiter().into_nota())
+            Self::Application(head, payload) => {
+                format!("{}.{}", head.to_source_dotos(), payload.to_source_dotos())
+            }
+            Self::Delimited(data) => DelimitedNotation::new(data.delimiter().into_dotos())
                 .wrap_children(
                     &data
                         .children()
                         .iter()
-                        .map(Self::to_source_notation)
+                        .map(Self::to_source_dotos)
                         .collect::<Vec<_>>(),
                 ),
         }
@@ -940,8 +958,8 @@ impl StructuralMacroNode for MacroTemplateObject {
         }
     }
 
-    fn to_structural_nota(&self) -> String {
-        self.to_source_notation()
+    fn to_structural_dotos(&self) -> String {
+        self.to_source_dotos()
     }
 }
 
@@ -949,8 +967,8 @@ impl StructuralMacroNode for MacroTemplateObject {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -994,8 +1012,8 @@ impl MacroTemplateDelimited {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Copy,
     Debug,
@@ -1009,15 +1027,18 @@ pub enum MacroDelimiter {
 }
 
 impl MacroDelimiter {
-    fn from_nota(delimiter: Delimiter) -> Self {
+    fn from_dotos(delimiter: Delimiter) -> Self {
         match delimiter {
             Delimiter::Parenthesis => Self::Parenthesis,
             Delimiter::SquareBracket => Self::SquareBracket,
             Delimiter::Brace => Self::Brace,
+            Delimiter::PipeParenthesis | Delimiter::PipeBrace => {
+                unreachable!("structural pipe delimiters are not schema macro syntax")
+            }
         }
     }
 
-    fn into_nota(self) -> Delimiter {
+    fn into_dotos(self) -> Delimiter {
         match self {
             Self::Parenthesis => Delimiter::Parenthesis,
             Self::SquareBracket => Delimiter::SquareBracket,
@@ -1034,9 +1055,9 @@ impl MacroDelimiter {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
-    nota::StructuralMacroNode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
+    dotos::StructuralMacroNode,
     Clone,
     Debug,
     Eq,
@@ -1389,6 +1410,10 @@ impl<'object> ObjectView<'object> {
 enum ExpandedObject {
     Captured(Block),
     Atom(String),
+    Application {
+        head: Box<ExpandedObject>,
+        payload: Box<ExpandedObject>,
+    },
     Delimited {
         delimiter: Delimiter,
         children: Vec<ExpandedObject>,
@@ -1400,6 +1425,9 @@ impl ExpandedObject {
         match self {
             Self::Captured(block) => NotationBlock::new(block).compact_notation(),
             Self::Atom(text) => text.clone(),
+            Self::Application { head, payload } => {
+                format!("{}.{}", head.compact_notation(), payload.compact_notation())
+            }
             Self::Delimited {
                 delimiter,
                 children,
@@ -1416,7 +1444,7 @@ impl ExpandedObject {
         match self {
             Self::Captured(block) => block.demote_to_string(),
             Self::Atom(text) => Some(text.as_str()),
-            Self::Delimited { .. } => None,
+            Self::Application { .. } | Self::Delimited { .. } => None,
         }
     }
 
@@ -1433,7 +1461,7 @@ impl ExpandedObject {
                     })
                 }
             }
-            Self::Delimited { .. } => Err(SchemaError::ExpectedSymbol {
+            Self::Application { .. } | Self::Delimited { .. } => Err(SchemaError::ExpectedSymbol {
                 found: self.compact_notation(),
             }),
         }
@@ -1443,21 +1471,21 @@ impl ExpandedObject {
         match self {
             Self::Captured(block) => block.holds_root_objects(),
             Self::Delimited { children, .. } => children.len(),
-            Self::Atom(_) => 0,
+            Self::Atom(_) | Self::Application { .. } => 0,
         }
     }
 
     fn root_object_at(&self, index: usize) -> Option<&ExpandedObject> {
         match self {
             Self::Delimited { children, .. } => children.get(index),
-            Self::Captured(_) | Self::Atom(_) => None,
+            Self::Captured(_) | Self::Atom(_) | Self::Application { .. } => None,
         }
     }
 
     fn root_objects(&self) -> &[ExpandedObject] {
         match self {
             Self::Delimited { children, .. } => children,
-            Self::Captured(_) | Self::Atom(_) => &[],
+            Self::Captured(_) | Self::Atom(_) | Self::Application { .. } => &[],
         }
     }
 
@@ -1472,7 +1500,7 @@ impl ExpandedObject {
                         .is_some_and(|character| character.is_ascii_uppercase())
                     && !text.contains('-')
             }
-            Self::Delimited { .. } => false,
+            Self::Application { .. } | Self::Delimited { .. } => false,
         }
     }
 
@@ -1480,6 +1508,9 @@ impl ExpandedObject {
         match self {
             Self::Captured(block) => TypeReference::from_block(block),
             Self::Atom(_) => ExpandedReference::new(std::slice::from_ref(self)).type_reference(),
+            Self::Application { .. } => {
+                ExpandedReference::new(std::slice::from_ref(self)).type_reference()
+            }
             Self::Delimited {
                 delimiter: Delimiter::Parenthesis,
                 children,
@@ -1496,6 +1527,13 @@ impl ExpandedObject {
                 children,
             } => Err(SchemaError::UnknownTypeReferenceForm {
                 head: "Brace".to_owned(),
+                argument_count: children.len(),
+            }),
+            Self::Delimited {
+                delimiter: Delimiter::PipeParenthesis | Delimiter::PipeBrace,
+                children,
+            } => Err(SchemaError::UnknownTypeReferenceForm {
+                head: "structural pipe delimiter".to_owned(),
                 argument_count: children.len(),
             }),
         }
@@ -1692,7 +1730,7 @@ impl<'template> MacroExpansionField<'template> {
         let name = self.object.schema_name()?;
         if TypeReference::is_reserved_scalar_name(&name) {
             return Err(SchemaError::RetiredStructFieldSyntax {
-                found: name.to_nota(),
+                found: name.to_dotos(),
             });
         }
         Ok(FieldDeclaration {
@@ -1725,7 +1763,7 @@ impl<'template> MacroExpansionField<'template> {
         {
             return Err(SchemaError::RedundantExplicitFieldRole {
                 found: format!("{field_name}.{type_name}"),
-                type_name: reference.to_nota(),
+                type_name: reference.to_dotos(),
             });
         }
         Ok(FieldDeclaration {
@@ -1748,7 +1786,7 @@ impl<'template> MacroExpansionField<'template> {
         if name.field_name() == derived.as_str() {
             return Err(SchemaError::RedundantExplicitFieldRole {
                 found: format!("{field_name}.<reference>"),
-                type_name: derived.to_nota(),
+                type_name: derived.to_dotos(),
             });
         }
         Ok(FieldDeclaration {
@@ -1956,6 +1994,11 @@ impl<'block> NotationBlock<'block> {
                     .collect::<Vec<_>>(),
             ),
             Block::PipeText(pipe_text) => format!("[|{}|]", pipe_text.text),
+            Block::Application { head, payload, .. } => format!(
+                "{}.{}",
+                NotationBlock::new(head).compact_notation(),
+                NotationBlock::new(payload).compact_notation()
+            ),
             Block::Atom(atom) => atom.text().to_owned(),
         }
     }
@@ -1983,6 +2026,8 @@ impl DelimitedNotation {
             Delimiter::Parenthesis => "(",
             Delimiter::SquareBracket => "[",
             Delimiter::Brace => "{",
+            Delimiter::PipeParenthesis => "(|",
+            Delimiter::PipeBrace => "{|",
         }
     }
 
@@ -1991,6 +2036,8 @@ impl DelimitedNotation {
             Delimiter::Parenthesis => ")",
             Delimiter::SquareBracket => "]",
             Delimiter::Brace => "}",
+            Delimiter::PipeParenthesis => "|)",
+            Delimiter::PipeBrace => "|}",
         }
     }
 }

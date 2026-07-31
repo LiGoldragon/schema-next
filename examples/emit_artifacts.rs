@@ -6,7 +6,7 @@ fn main() {
     println!("=== builtin-macros.macro-library ===");
     println!(
         "{}",
-        MacroLibraryArtifact::new(macro_library).to_nota_source()
+        MacroLibraryArtifact::new(macro_library).to_dotos_source()
     );
 
     let core_source = include_str!("../schemas/core.schema");

@@ -68,7 +68,7 @@
               exit 1
             fi
             if grep -R -n -E '\[\[[A-Z]|\((records|kinds|services|Listed) \[[A-Z]|\((byTopic|Projected|nodes) \{[A-Z]' ${src}/schemas ${src}/tests/fixtures; then
-              echo "schema examples must use typed NOTA composite references: Vector.T, Map.(K V), Optional.T" >&2
+              echo "schema examples must use typed DOTOS composite references: Vector.T, Map.(K V), Optional.T" >&2
               exit 1
             fi
             if grep -R -n -E '\((Vector|Optional|ScopeOf|Map|Bytes) [A-Za-z0-9_$]' ${src}/schemas ${src}/tests/fixtures; then
@@ -102,7 +102,7 @@
               exit 1
             fi
             grep -R "schema_source_and_semantic_schema_round_trip_without_asschema_artifacts" ${src}/tests/operator_271_closed_claims.rs >/dev/null
-            grep -R "raw_core_schema_fixture_is_legal_nota_before_schema_reading" ${src}/tests/raw_core_schema.rs >/dev/null
+            grep -R "raw_core_schema_fixture_is_legal_dotos_before_schema_reading" ${src}/tests/raw_core_schema.rs >/dev/null
             if grep -R -n -E '\[Input \[|\[Output \[|\(Struct \[|\(Enum \[|\(Newtype \[|\(Map \[\(Plain|\(Carries \(Plain' ${src}/src ${src}/tests ${src}/schemas; then
               echo "obsolete ASSchema vector-record syntax must not remain in active code or fixtures" >&2
               exit 1
@@ -201,7 +201,7 @@
             grep -R "derived_field_names_project_on_demand_and_match_materialized_names" ${src}/tests/core_projection.rs >/dev/null
             grep -R "view_codecs_round_trip_value_exactly_over_the_corpus" ${src}/tests/core_projection.rs >/dev/null
             grep -R "authored_schema_decodes_directly_to_true_schema" ${src}/tests/true_schema.rs >/dev/null
-            grep -R "true_schema_round_trips_through_binary_and_structured_nota" ${src}/tests/true_schema.rs >/dev/null
+            grep -R "true_schema_round_trips_through_binary_and_structured_dotos" ${src}/tests/true_schema.rs >/dev/null
             grep -R "product_components_accept_implicit_unique_types" ${src}/tests/true_schema.rs >/dev/null
             grep -R "product_components_accept_duplicate_types_with_explicit_identities" ${src}/tests/true_schema.rs >/dev/null
             grep -R "product_components_reject_redundant_explicit_derived_identity" ${src}/tests/true_schema.rs >/dev/null
@@ -249,7 +249,7 @@
             test -f ${src}/tests/fixtures/raw-core/non-map-root.schema
             test -f ${src}/tests/fixtures/raw-core/odd-map.schema
             grep -R "RawSchemaFile::from_path_and_source" ${src}/tests/raw_core_schema.rs >/dev/null
-            grep -R "raw_core_schema_fixture_is_legal_nota_before_schema_reading" ${src}/tests/raw_core_schema.rs >/dev/null
+            grep -R "raw_core_schema_fixture_is_legal_dotos_before_schema_reading" ${src}/tests/raw_core_schema.rs >/dev/null
             grep -R "raw_core_schema_file_root_name_comes_from_filename" ${src}/tests/raw_core_schema.rs >/dev/null
             grep -R "raw_core_schema_reads_datatype_key_value_map" ${src}/tests/raw_core_schema.rs >/dev/null
             grep -R "raw_core_schema_preserves_native_key_value_and_enum_forms" ${src}/tests/raw_core_schema.rs >/dev/null

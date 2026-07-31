@@ -18,7 +18,7 @@
 
 use std::path::PathBuf;
 
-use nota::{Document, NotaDecode, NotaEncode};
+use dotos::{Document, DotosDecode, DotosEncode};
 use schema::{
     DeclarationKind, ImportResolver, MacroContext, Name, SchemaEngine, SchemaIdentity, TrueSchema,
 };
@@ -133,7 +133,7 @@ fn imported_declarations_mint_identical_identifiers_to_standalone_lowering() {
 
 /// (b) Projection equivalence over the import-bearing fixture: the migrated
 /// consumer's view round-trips value-exactly through both the canonical binary
-/// bytes and structured NOTA, so the projection reproduces exactly the value
+/// bytes and structured DOTOS, so the projection reproduces exactly the value
 /// lowering built — imported frame bodies included.
 #[test]
 fn import_bearing_view_codecs_round_trip_value_exactly() {
@@ -148,13 +148,13 @@ fn import_bearing_view_codecs_round_trip_value_exactly() {
         "binary round trip is value-exact over the import-bearing fixture",
     );
 
-    let nota = migrated.to_nota();
-    let document = Document::parse(&nota).expect("migrated NOTA parses");
-    let from_nota = TrueSchema::from_nota_block(&document.root_objects()[0])
-        .expect("migrated decodes from NOTA");
+    let dotos = migrated.to_dotos();
+    let document = Document::parse(&dotos).expect("migrated DOTOS parses");
+    let from_dotos = TrueSchema::from_dotos_block(&document.root_objects()[0])
+        .expect("migrated decodes from DOTOS");
     assert_eq!(
-        from_nota, migrated,
-        "NOTA round trip is value-exact over the import-bearing fixture",
+        from_dotos, migrated,
+        "DOTOS round trip is value-exact over the import-bearing fixture",
     );
 }
 

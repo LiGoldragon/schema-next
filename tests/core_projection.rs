@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use nota::{Document, NotaDecode, NotaEncode};
+use dotos::{Document, DotosDecode, DotosEncode};
 use schema::{
     DeclarationKind, ImportResolver, Name, NameTable, SchemaEngine, SchemaError, SchemaIdentity,
     TrueSchema, TypeDeclaration, TypeDeclarationView,
@@ -153,7 +153,7 @@ fn corpus() -> Vec<CorpusEntry> {
 
 /// The post-flip projection-equivalence witness: for every corpus fixture the
 /// view's codec projections round-trip value-exactly through both structured
-/// NOTA and the canonical binary bytes — the encoded form is the projected
+/// DOTOS and the canonical binary bytes — the encoded form is the projected
 /// sidecar tree, so a passing round trip proves the projection reproduces the
 /// value lowering built.
 #[test]
@@ -172,14 +172,14 @@ fn view_codecs_round_trip_value_exactly_over_the_corpus() {
             entry.name,
         );
 
-        let nota = schema.to_nota();
-        let document = Document::parse(&nota)
-            .unwrap_or_else(|error| panic!("fixture {} NOTA parses: {error:?}", entry.name));
-        let from_nota = TrueSchema::from_nota_block(&document.root_objects()[0])
-            .unwrap_or_else(|error| panic!("fixture {} decodes from NOTA: {error}", entry.name));
+        let dotos = schema.to_dotos();
+        let document = Document::parse(&dotos)
+            .unwrap_or_else(|error| panic!("fixture {} DOTOS parses: {error:?}", entry.name));
+        let from_dotos = TrueSchema::from_dotos_block(&document.root_objects()[0])
+            .unwrap_or_else(|error| panic!("fixture {} decodes from DOTOS: {error}", entry.name));
         assert_eq!(
-            from_nota, schema,
-            "NOTA round trip must be value-exact for fixture {}",
+            from_dotos, schema,
+            "DOTOS round trip must be value-exact for fixture {}",
             entry.name,
         );
     }

@@ -1,8 +1,8 @@
-use nota::{
-    AtomShape, Block, CaptureName, DelimitedShape, Delimiter, MacroCandidate, MacroDelimiter,
-    MacroNodeDefinition as NotaMacroNodeDefinition, MacroObjectCount as NotaMacroObjectCount,
-    MacroRegistry as NotaMacroRegistry, NotaBody, Pattern, PatternElement, PositionPredicate,
-    StructureHeader,
+use dotos::{
+    AtomShape, Block, CaptureName, DelimitedShape, Delimiter, DotosBody, MacroCandidate,
+    MacroDelimiter, MacroNodeDefinition as DotosMacroNodeDefinition,
+    MacroObjectCount as DotosMacroObjectCount, MacroRegistry as DotosMacroRegistry, Pattern,
+    PatternElement, PositionPredicate, StructureHeader,
 };
 
 use crate::{
@@ -17,9 +17,9 @@ use crate::{
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
-    nota::StructuralMacroNode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
+    dotos::StructuralMacroNode,
     Clone,
     Copy,
     Debug,
@@ -89,11 +89,11 @@ impl<'object> MacroObject<'object> {
         self,
         delimiter: Delimiter,
         expected: &'static str,
-    ) -> Result<NotaBody<'object>, SchemaError> {
+    ) -> Result<DotosBody<'object>, SchemaError> {
         let block = self
             .block()
             .ok_or(SchemaError::ExpectedDelimiter { expected })?;
-        NotaBody::from_delimited(block, delimiter, expected).map_err(SchemaError::from)
+        DotosBody::from_delimited(block, delimiter, expected).map_err(SchemaError::from)
     }
 
     pub fn describe(self) -> String {
@@ -323,7 +323,7 @@ impl MacroRegistry {
 pub struct MacroNodeDefinition {
     position: MacroPosition,
     dispatch: MacroDispatch,
-    cases: Vec<NotaMacroNodeDefinition>,
+    cases: Vec<DotosMacroNodeDefinition>,
 }
 
 impl MacroNodeDefinition {
@@ -338,7 +338,7 @@ impl MacroNodeDefinition {
     pub fn with_cases(
         position: MacroPosition,
         dispatch: MacroDispatch,
-        cases: Vec<NotaMacroNodeDefinition>,
+        cases: Vec<DotosMacroNodeDefinition>,
     ) -> Self {
         Self {
             position,
@@ -355,7 +355,7 @@ impl MacroNodeDefinition {
                 MacroPosition::RootImports,
                 "imports map",
                 MacroDelimiter::Brace,
-                NotaMacroObjectCount::Even,
+                DotosMacroObjectCount::Even,
             )],
         )
     }
@@ -376,7 +376,7 @@ impl MacroNodeDefinition {
                 MacroPosition::RootNamespace,
                 "namespace map",
                 MacroDelimiter::Brace,
-                NotaMacroObjectCount::Even,
+                DotosMacroObjectCount::Even,
             )],
         )
     }
@@ -392,7 +392,7 @@ impl MacroNodeDefinition {
                     PatternElement::atom(AtomShape::symbol(Some(CaptureName::new("type_name")))),
                     PatternElement::delimited(DelimitedShape::new(
                         MacroDelimiter::Brace,
-                        NotaMacroObjectCount::Any,
+                        DotosMacroObjectCount::Any,
                         Some(CaptureName::new("body")),
                     )),
                     "symbol key followed by brace value",
@@ -403,7 +403,7 @@ impl MacroNodeDefinition {
                     PatternElement::atom(AtomShape::symbol(Some(CaptureName::new("type_name")))),
                     PatternElement::delimited(DelimitedShape::new(
                         MacroDelimiter::SquareBracket,
-                        NotaMacroObjectCount::Any,
+                        DotosMacroObjectCount::Any,
                         Some(CaptureName::new("body")),
                     )),
                     "symbol key followed by square bracket value",
@@ -451,7 +451,7 @@ impl MacroNodeDefinition {
             MacroPosition::EnumVariants,
             MacroDispatch::Structural,
             vec![
-                NotaMacroNodeDefinition::new(
+                DotosMacroNodeDefinition::new(
                     "unit variant",
                     MacroPosition::EnumVariants.position_predicate(),
                     Pattern::new(vec![PatternElement::atom(AtomShape::pascal_case(Some(
@@ -459,13 +459,13 @@ impl MacroNodeDefinition {
                     )))]),
                     "PascalCase variant atom",
                 ),
-                NotaMacroNodeDefinition::new(
+                DotosMacroNodeDefinition::new(
                     "data variant",
                     MacroPosition::EnumVariants.position_predicate(),
                     Pattern::new(vec![PatternElement::delimited(
                         DelimitedShape::new(
                             MacroDelimiter::Parenthesis,
-                            NotaMacroObjectCount::Exact(2),
+                            DotosMacroObjectCount::Exact(2),
                             Some(CaptureName::new("variant_signature")),
                         )
                         .with_children(Pattern::new(vec![
@@ -477,13 +477,13 @@ impl MacroNodeDefinition {
                     )]),
                     "parenthesized variant signature carrying variant name and payload type",
                 ),
-                NotaMacroNodeDefinition::new(
+                DotosMacroNodeDefinition::new(
                     "opens variant",
                     MacroPosition::EnumVariants.position_predicate(),
                     Pattern::new(vec![PatternElement::delimited(
                         DelimitedShape::new(
                             MacroDelimiter::Parenthesis,
-                            NotaMacroObjectCount::Exact(4),
+                            DotosMacroObjectCount::Exact(4),
                             Some(CaptureName::new("variant_signature")),
                         )
                         .with_children(Pattern::new(vec![
@@ -499,13 +499,13 @@ impl MacroNodeDefinition {
                     )]),
                     "parenthesized variant signature carrying variant name, payload type, opens keyword, and stream name",
                 ),
-                NotaMacroNodeDefinition::new(
+                DotosMacroNodeDefinition::new(
                     "belongs variant",
                     MacroPosition::EnumVariants.position_predicate(),
                     Pattern::new(vec![PatternElement::delimited(
                         DelimitedShape::new(
                             MacroDelimiter::Parenthesis,
-                            NotaMacroObjectCount::Exact(4),
+                            DotosMacroObjectCount::Exact(4),
                             Some(CaptureName::new("variant_signature")),
                         )
                         .with_children(Pattern::new(vec![
@@ -530,7 +530,7 @@ impl MacroNodeDefinition {
             MacroPosition::TypeReference,
             MacroDispatch::StructuralOrTaggedInvocation,
             vec![
-                NotaMacroNodeDefinition::new(
+                DotosMacroNodeDefinition::new(
                     "plain or scalar reference",
                     MacroPosition::TypeReference.position_predicate(),
                     Pattern::new(vec![PatternElement::atom(AtomShape::symbol(Some(
@@ -542,7 +542,7 @@ impl MacroNodeDefinition {
                     MacroPosition::TypeReference,
                     "composite or tagged invocation",
                     MacroDelimiter::Parenthesis,
-                    NotaMacroObjectCount::Any,
+                    DotosMacroObjectCount::Any,
                 ),
             ],
         )
@@ -560,13 +560,13 @@ impl MacroNodeDefinition {
                     position,
                     "root enum body",
                     MacroDelimiter::SquareBracket,
-                    NotaMacroObjectCount::Any,
+                    DotosMacroObjectCount::Any,
                 ),
                 Self::block_case(
                     position,
                     "root application body",
                     MacroDelimiter::Parenthesis,
-                    NotaMacroObjectCount::Any,
+                    DotosMacroObjectCount::Any,
                 ),
             ],
         )
@@ -580,7 +580,7 @@ impl MacroNodeDefinition {
         self.dispatch
     }
 
-    pub fn cases(&self) -> &[NotaMacroNodeDefinition] {
+    pub fn cases(&self) -> &[DotosMacroNodeDefinition] {
         &self.cases
     }
 
@@ -589,24 +589,24 @@ impl MacroNodeDefinition {
     }
 
     pub fn matches(&self, object: MacroObject<'_>) -> bool {
-        NotaMacroRegistry::unchecked(self.cases.clone())
+        DotosMacroRegistry::unchecked(self.cases.clone())
             .dispatch(&object.macro_candidate(self.position))
             .is_ok()
     }
 
     pub fn unsupported_structure_error(&self, object: MacroObject<'_>) -> SchemaError {
-        let error = NotaMacroRegistry::unchecked(self.cases.clone())
+        let error = DotosMacroRegistry::unchecked(self.cases.clone())
             .dispatch(&object.macro_candidate(self.position))
             .expect_err("unsupported structure checked after no schema macro matched");
         match error {
-            nota::MacroError::NoMatch {
+            dotos::MacroError::NoMatch {
                 expected, found, ..
             } => SchemaError::UnsupportedMacroNodeStructure {
                 position: self.position.as_str().to_owned(),
                 expected,
                 found,
             },
-            nota::MacroError::Conflict(conflict) => SchemaError::UnsupportedMacroNodeStructure {
+            dotos::MacroError::Conflict(conflict) => SchemaError::UnsupportedMacroNodeStructure {
                 position: self.position.as_str().to_owned(),
                 expected: vec![format!(
                     "non-conflicting macro cases, found conflict between {} and {}",
@@ -629,10 +629,10 @@ impl MacroNodeDefinition {
         position: MacroPosition,
         name: impl Into<String>,
         delimiter: MacroDelimiter,
-        object_count: NotaMacroObjectCount,
-    ) -> NotaMacroNodeDefinition {
+        object_count: DotosMacroObjectCount,
+    ) -> DotosMacroNodeDefinition {
         let delimiter_name = delimiter.as_str();
-        NotaMacroNodeDefinition::new(
+        DotosMacroNodeDefinition::new(
             name,
             position.position_predicate(),
             Pattern::new(vec![PatternElement::delimited(DelimitedShape::new(
@@ -650,8 +650,8 @@ impl MacroNodeDefinition {
         key: PatternElement,
         value: PatternElement,
         expected: impl Into<String>,
-    ) -> NotaMacroNodeDefinition {
-        NotaMacroNodeDefinition::new(
+    ) -> DotosMacroNodeDefinition {
+        DotosMacroNodeDefinition::new(
             name,
             position.position_predicate(),
             Pattern::new(vec![key, value]),

@@ -18,13 +18,13 @@
 //!   semantic node values for consumers that need whole values.
 //!
 //! The name-bearing tree (`SchemaTree`) survives only as the codec and hash
-//! sidecar: NOTA text, canonical schema text, and rkyv binary bytes are
+//! sidecar: DOTOS text, canonical schema text, and rkyv binary bytes are
 //! projected through it, so every codec surface stays value-exact with the
 //! pre-split format. Derived field names are not stored anywhere — a field's
 //! name is either its explicit disambiguator row in the table or the composed
 //! derivation from its reference, computed at read time.
 
-use nota::{Block, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, DotosDecode, DotosDecodeError, DotosEncode};
 
 use crate::{
     SchemaError, SchemaIdentity,
@@ -64,7 +64,7 @@ impl TrueSchema {
     /// identifiers against `prior`.
     pub(crate) fn from_tree(tree: &SchemaTree, prior: &NameTable) -> Result<Self, SchemaError> {
         // The semantic construction/decode boundary: every schema value —
-        // programmatically built, binary-decoded, or NOTA-decoded — funnels
+        // programmatically built, binary-decoded, or DOTOS-decoded — funnels
         // through here, so a duplicate generic or frame binder is rejected here
         // even when the value never passed the source reader's own guard.
         // Decomposition would otherwise mint two binders with the same name into
@@ -87,7 +87,7 @@ impl TrueSchema {
     }
 
     /// Project the full name-bearing sidecar tree. This is the codec and hash
-    /// surface: NOTA, canonical schema text, and binary bytes all pass through
+    /// surface: DOTOS, canonical schema text, and binary bytes all pass through
     /// it, so they stay value-exact with the pre-split format.
     pub(crate) fn tree(&self) -> SchemaTree {
         self.core
@@ -380,13 +380,13 @@ impl TrueSchema {
     }
 }
 
-/// A `TrueSchema` decodes from and encodes to the same NOTA projection as the
+/// A `TrueSchema` decodes from and encodes to the same DOTOS projection as the
 /// pre-split stored tree: decoding parses the tree shape and decomposes it;
 /// encoding projects the sidecar tree. Round trips are value-exact.
-impl NotaDecode for TrueSchema {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        Self::from_tree(&SchemaTree::from_nota_block(block)?, &NameTable::empty()).map_err(
-            |error| NotaDecodeError::InvalidValue {
+impl DotosDecode for TrueSchema {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        Self::from_tree(&SchemaTree::from_dotos_block(block)?, &NameTable::empty()).map_err(
+            |error| DotosDecodeError::InvalidValue {
                 type_name: "TrueSchema",
                 value: String::new(),
                 reason: error.to_string(),
@@ -395,9 +395,9 @@ impl NotaDecode for TrueSchema {
     }
 }
 
-impl NotaEncode for TrueSchema {
-    fn to_nota(&self) -> String {
-        self.tree().to_nota()
+impl DotosEncode for TrueSchema {
+    fn to_dotos(&self) -> String {
+        self.tree().to_dotos()
     }
 }
 

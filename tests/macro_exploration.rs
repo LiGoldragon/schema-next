@@ -14,7 +14,7 @@
 //! express the same idea, OR uses a combination. Fixtures are tight —
 //! one concept per test.
 
-use nota::Document;
+use dotos::Document;
 use schema::{
     MacroContext, MacroLibrary, MacroLibraryArtifact, MacroLibrarySourceEntry, MacroObject,
     MacroOutput, MacroPair, MacroPosition, MacroRegistry, SchemaError, SchemaMacroHandler,
@@ -89,7 +89,7 @@ impl SchemaMacroHandler for DelimiterOnlyMacro {
 
 #[test]
 fn delimiter_only_match_fires_on_outer_delimiter_regardless_of_contents() {
-    let document = Document::parse("{Alpha Beta Gamma}").expect("nota parses");
+    let document = Document::parse("{Alpha Beta Gamma}").expect("dotos parses");
     let object = document.root_object_at(0).expect("root");
 
     let brace_macro = DelimiterOnlyMacro::new("AcceptsBrace", Delimiter::Brace);
@@ -99,7 +99,7 @@ fn delimiter_only_match_fires_on_outer_delimiter_regardless_of_contents() {
     assert!(!paren_macro.matches(MacroObject::Block(object), MacroPosition::EnumVariants));
 
     // Empty brace also fires — contents are irrelevant.
-    let empty = Document::parse("{}").expect("nota parses");
+    let empty = Document::parse("{}").expect("dotos parses");
     let empty_object = empty.root_object_at(0).expect("root");
     assert!(brace_macro.matches(
         MacroObject::Block(empty_object),
@@ -107,7 +107,7 @@ fn delimiter_only_match_fires_on_outer_delimiter_regardless_of_contents() {
     ));
 
     // SquareBracket macro fires only on square-bracket input.
-    let square = Document::parse("[Alpha Beta]").expect("nota parses");
+    let square = Document::parse("[Alpha Beta]").expect("dotos parses");
     let square_object = square.root_object_at(0).expect("root");
     let square_macro = DelimiterOnlyMacro::new("AcceptsSquare", Delimiter::SquareBracket);
     assert!(square_macro.matches(
@@ -172,7 +172,7 @@ impl SchemaMacroHandler for NamedPayloadShapeMacro {
 
 #[test]
 fn shape_match_requires_exact_inner_structure() {
-    let yes_two_pascal = Document::parse("(Foo Bar)").expect("nota parses");
+    let yes_two_pascal = Document::parse("(Foo Bar)").expect("dotos parses");
     let yes = yes_two_pascal.root_object_at(0).expect("root");
 
     let macro_obj = NamedPayloadShapeMacro::new("NamedPayload");
@@ -182,7 +182,7 @@ fn shape_match_requires_exact_inner_structure() {
     );
 
     // 3 children — wrong count.
-    let three_children = Document::parse("(Foo Bar Baz)").expect("nota parses");
+    let three_children = Document::parse("(Foo Bar Baz)").expect("dotos parses");
     let no_count = three_children.root_object_at(0).expect("root");
     assert!(!macro_obj.matches(
         MacroObject::Block(no_count),
@@ -190,7 +190,7 @@ fn shape_match_requires_exact_inner_structure() {
     ));
 
     // 2 children but first is kebab-case — wrong shape.
-    let kebab_first = Document::parse("(foo-bar Baz)").expect("nota parses");
+    let kebab_first = Document::parse("(foo-bar Baz)").expect("dotos parses");
     let no_shape = kebab_first.root_object_at(0).expect("root");
     assert!(!macro_obj.matches(
         MacroObject::Block(no_shape),
@@ -247,20 +247,21 @@ impl SchemaMacroHandler for FiveObjectMacro {
 #[test]
 fn object_count_match_distinguishes_by_root_object_count() {
     let five = Document::parse("(SchemaMacro Foo NamespaceDeclaration ($X) (Type X))")
-        .expect("nota parses");
+        .expect("dotos parses");
     let five_object = five.root_object_at(0).expect("root");
 
     let macro_obj = FiveObjectMacro::new("FiveRoots");
     assert!(macro_obj.matches(MacroObject::Block(five_object), MacroPosition::RootInput));
 
     // 4 root objects — does not match.
-    let four = Document::parse("(SchemaMacro Foo NamespaceDeclaration ($X))").expect("nota parses");
+    let four =
+        Document::parse("(SchemaMacro Foo NamespaceDeclaration ($X))").expect("dotos parses");
     let four_object = four.root_object_at(0).expect("root");
     assert!(!macro_obj.matches(MacroObject::Block(four_object), MacroPosition::RootInput));
 
     // 6 root objects — does not match.
     let six = Document::parse("(SchemaMacro Foo NamespaceDeclaration ($X) (Type X) Extra)")
-        .expect("nota parses");
+        .expect("dotos parses");
     let six_object = six.root_object_at(0).expect("root");
     assert!(!macro_obj.matches(MacroObject::Block(six_object), MacroPosition::RootInput));
 }
@@ -283,11 +284,11 @@ fn builtin_macro_library_round_trips_as_typed_data_and_still_executes() {
             .any(|definition| definition.name().as_str() == "SchemaStructDefinition")
     );
 
-    let nota = library.to_nota_source();
-    let from_nota = MacroLibrary::from_nota_source(&nota).expect("macro data reads as NOTA");
-    assert_eq!(from_nota, library);
+    let dotos = library.to_dotos_source();
+    let from_dotos = MacroLibrary::from_dotos_source(&dotos).expect("macro data reads as DOTOS");
+    assert_eq!(from_dotos, library);
 
-    let bytes = from_nota
+    let bytes = from_dotos
         .to_binary_bytes()
         .expect("macro data archives to rkyv");
     let from_binary = MacroLibrary::from_binary_bytes(&bytes).expect("macro data reads from rkyv");
@@ -356,7 +357,7 @@ fn schema_macro_artifact_records_preserve_the_source_entry_variant() {
 #[test]
 fn builtin_macro_library_artifact_is_checked_in_and_fresh() {
     let source_library = MacroLibrary::builtin_source().expect("builtin macro source parses");
-    let checked_in = MacroLibraryArtifact::from_nota_source(include_str!(
+    let checked_in = MacroLibraryArtifact::from_dotos_source(include_str!(
         "../schemas/builtin-macros.macro-library"
     ))
     .expect("checked-in macro library artifact decodes");
@@ -375,24 +376,24 @@ fn builtin_macro_library_artifact_is_checked_in_and_fresh() {
 }
 
 #[test]
-fn macro_library_artifact_reads_and_writes_real_nota_and_binary_files() {
+fn macro_library_artifact_reads_and_writes_real_dotos_and_binary_files() {
     let library = MacroLibrary::builtin().expect("builtin artifact loads");
     let artifact = MacroLibraryArtifact::new(library.clone());
     let paths = MacroLibraryArtifactTestPaths::new("builtin-macros");
 
     artifact
-        .write_nota_file(paths.nota_path())
-        .expect("write macro library nota artifact");
+        .write_dotos_file(paths.dotos_path())
+        .expect("write macro library dotos artifact");
     artifact
         .write_binary_file(paths.binary_path())
         .expect("write macro library binary artifact");
 
-    let from_nota = MacroLibraryArtifact::read_nota_file(paths.nota_path())
-        .expect("read macro library nota artifact");
+    let from_dotos = MacroLibraryArtifact::read_dotos_file(paths.dotos_path())
+        .expect("read macro library dotos artifact");
     let from_binary = MacroLibraryArtifact::read_binary_file(paths.binary_path())
         .expect("read macro library binary artifact");
 
-    assert_eq!(from_nota.library(), &library);
+    assert_eq!(from_dotos.library(), &library);
     assert_eq!(from_binary.library(), &library);
 
     paths.remove();
@@ -423,7 +424,7 @@ fn retired_duplicate_macro_datatype_names_do_not_return() {
 
 struct MacroLibraryArtifactTestPaths {
     directory: std::path::PathBuf,
-    nota_path: std::path::PathBuf,
+    dotos_path: std::path::PathBuf,
     binary_path: std::path::PathBuf,
 }
 
@@ -436,14 +437,14 @@ impl MacroLibraryArtifactTestPaths {
         let _ = std::fs::remove_dir_all(&directory);
         std::fs::create_dir_all(&directory).expect("create macro library artifact test directory");
         Self {
-            nota_path: directory.join("builtin-macros.macro-library"),
+            dotos_path: directory.join("builtin-macros.macro-library"),
             binary_path: directory.join("builtin-macros.macro-library.rkyv"),
             directory,
         }
     }
 
-    fn nota_path(&self) -> &std::path::Path {
-        &self.nota_path
+    fn dotos_path(&self) -> &std::path::Path {
+        &self.dotos_path
     }
 
     fn binary_path(&self) -> &std::path::Path {
@@ -517,9 +518,9 @@ impl SchemaMacroHandler for SymbolCaseMacro {
 
 #[test]
 fn qualified_as_symbol_match_splits_pascal_kebab_camel() {
-    let pascal = Document::parse("Decision").expect("nota parses");
-    let kebab = Document::parse("schema-spirit").expect("nota parses");
-    let camel = Document::parse("recordIdentifier").expect("nota parses");
+    let pascal = Document::parse("Decision").expect("dotos parses");
+    let kebab = Document::parse("schema-spirit").expect("dotos parses");
+    let camel = Document::parse("recordIdentifier").expect("dotos parses");
 
     let pascal_macro = SymbolCaseMacro::new("AcceptsPascal", SymbolCase::Pascal);
     let kebab_macro = SymbolCaseMacro::new("AcceptsKebab", SymbolCase::Kebab);
@@ -570,7 +571,7 @@ impl BraceNamedPairsMacro {
         Self { label }
     }
 
-    fn all_odd_positions_pascal_case(&self, block: &nota::Block) -> bool {
+    fn all_odd_positions_pascal_case(&self, block: &dotos::Block) -> bool {
         let count = block.holds_root_objects();
         for index in (0..count).step_by(2) {
             let Some(child) = block.root_object_at(index) else {
@@ -619,12 +620,12 @@ fn combined_criteria_brace_and_even_count_and_pascal_keys() {
     let macro_obj = BraceNamedPairsMacro::new("BraceNamedPairs");
 
     // All three criteria satisfied — fires.
-    let good = Document::parse("{ToInbox Address ToOutbox Address}").expect("nota parses");
+    let good = Document::parse("{ToInbox Address ToOutbox Address}").expect("dotos parses");
     let good_block = good.root_object_at(0).expect("root");
     assert!(macro_obj.matches(MacroObject::Block(good_block), MacroPosition::EnumVariants));
 
     // Paren delimiter — fails the brace criterion.
-    let wrong_delim = Document::parse("(ToInbox Address ToOutbox Address)").expect("nota parses");
+    let wrong_delim = Document::parse("(ToInbox Address ToOutbox Address)").expect("dotos parses");
     let wrong_delim_block = wrong_delim.root_object_at(0).expect("root");
     assert!(!macro_obj.matches(
         MacroObject::Block(wrong_delim_block),
@@ -632,12 +633,12 @@ fn combined_criteria_brace_and_even_count_and_pascal_keys() {
     ));
 
     // Odd count — fails the even-count criterion.
-    let odd = Document::parse("{ToInbox Address Extra}").expect("nota parses");
+    let odd = Document::parse("{ToInbox Address Extra}").expect("dotos parses");
     let odd_block = odd.root_object_at(0).expect("root");
     assert!(!macro_obj.matches(MacroObject::Block(odd_block), MacroPosition::EnumVariants));
 
     // kebab-case key — fails the PascalCase criterion.
-    let bad_key = Document::parse("{to-inbox Address ToOutbox Address}").expect("nota parses");
+    let bad_key = Document::parse("{to-inbox Address ToOutbox Address}").expect("dotos parses");
     let bad_key_block = bad_key.root_object_at(0).expect("root");
     assert!(!macro_obj.matches(
         MacroObject::Block(bad_key_block),
@@ -692,7 +693,7 @@ impl SchemaMacroHandler for AnyBraceMacro {
 fn first_match_wins_by_registration_order_on_overlapping_macros() {
     // Both AnyBraceMacro instances would match brace input at EnumVariants;
     // the first one registered wins.
-    let document = Document::parse("{Foo Bar Baz Quux}").expect("nota parses");
+    let document = Document::parse("{Foo Bar Baz Quux}").expect("dotos parses");
     let object = document.root_object_at(0).expect("root");
 
     let mut earliest_first = MacroRegistry::new();
@@ -793,7 +794,7 @@ fn position_aware_dispatch_picks_macro_by_position_slot() {
         MacroPosition::EnumVariants,
     ));
 
-    let document = Document::parse("(Foo Bar)").expect("nota parses");
+    let document = Document::parse("(Foo Bar)").expect("dotos parses");
     let object = document.root_object_at(0).expect("root");
 
     // Dispatch at RootInput → InputOnly fires.
@@ -881,7 +882,7 @@ impl SchemaMacroHandler for PairOnlyMacro {
 fn macro_object_pair_versus_block_dispatch_shapes() {
     let macro_obj = PairOnlyMacro::new("PairOnly");
 
-    let document = Document::parse("Foo").expect("nota parses");
+    let document = Document::parse("Foo").expect("dotos parses");
     let block = document.root_object_at(0).expect("root");
 
     // MacroObject::Block does NOT match a pair-only macro.
@@ -893,7 +894,7 @@ fn macro_object_pair_versus_block_dispatch_shapes() {
     // MacroObject::Pair DOES match — the name + definition halves are
     // both Block references. The engine constructs these pairs from the
     // namespace brace's even-positioned children.
-    let bodies = Document::parse("Foo [Bar Baz]").expect("nota parses");
+    let bodies = Document::parse("Foo [Bar Baz]").expect("dotos parses");
     let name = bodies.root_object_at(0).expect("name");
     let definition = bodies.root_object_at(1).expect("definition");
     let pair = MacroObject::Pair(schema::MacroPair { name, definition });
@@ -916,9 +917,9 @@ fn macro_library_bootstrap_source_round_trips_through_typed_nodes() {
     assert_eq!(reparsed, library);
 
     // The artifact projection round-trips through the same typed value.
-    let nota = library.to_nota_source();
-    let from_nota = MacroLibrary::from_nota_source(&nota).expect("artifact projection reparses");
-    assert_eq!(from_nota, library);
+    let dotos = library.to_dotos_source();
+    let from_dotos = MacroLibrary::from_dotos_source(&dotos).expect("artifact projection reparses");
+    assert_eq!(from_dotos, library);
 }
 
 #[test]
@@ -949,79 +950,80 @@ fn macro_library_source_rejects_malformed_definitions_with_typed_errors() {
 
 #[test]
 fn expansion_template_enum_decodes_each_template_kind() {
-    use nota::StructuralMacroNode;
+    use dotos::StructuralMacroNode;
     use schema::{MacroTemplate, TypeTemplate};
 
-    let struct_template = MacroTemplate::from_structural_nota("(Type (Struct $Name [$*Fields]))")
+    let struct_template = MacroTemplate::from_structural_dotos("(Type (Struct $Name [$*Fields]))")
         .expect("Type Struct template decodes");
     assert!(matches!(
         struct_template,
         MacroTemplate::Type(TypeTemplate::Struct(_, _))
     ));
     assert_eq!(
-        struct_template.to_structural_nota(),
+        struct_template.to_structural_dotos(),
         "(Type (Struct $Name [$*Fields]))"
     );
 
-    let enum_template = MacroTemplate::from_structural_nota("(Type (Enum $Name ($*Variants)))")
+    let enum_template = MacroTemplate::from_structural_dotos("(Type (Enum $Name ($*Variants)))")
         .expect("Type Enum template decodes");
     assert!(matches!(
         enum_template,
         MacroTemplate::Type(TypeTemplate::Enum(_, _))
     ));
     assert_eq!(
-        enum_template.to_structural_nota(),
+        enum_template.to_structural_dotos(),
         "(Type (Enum $Name ($*Variants)))"
     );
 
-    let newtype_template = MacroTemplate::from_structural_nota("(Type (Newtype $Name $Reference))")
-        .expect("Type Newtype template decodes");
+    let newtype_template =
+        MacroTemplate::from_structural_dotos("(Type (Newtype $Name $Reference))")
+            .expect("Type Newtype template decodes");
     assert!(matches!(
         newtype_template,
         MacroTemplate::Type(TypeTemplate::Newtype(_, _))
     ));
 
     let fields_template =
-        MacroTemplate::from_structural_nota("(Fields $*Fields)").expect("Fields template decodes");
+        MacroTemplate::from_structural_dotos("(Fields $*Fields)").expect("Fields template decodes");
     let MacroTemplate::Fields(field_objects) = &fields_template else {
         panic!("expected Fields template");
     };
     assert_eq!(field_objects.len(), 1);
-    assert_eq!(fields_template.to_structural_nota(), "(Fields $*Fields)");
+    assert_eq!(fields_template.to_structural_dotos(), "(Fields $*Fields)");
 
-    let variants_template = MacroTemplate::from_structural_nota("(Variants Decision Correction)")
+    let variants_template = MacroTemplate::from_structural_dotos("(Variants Decision Correction)")
         .expect("Variants template decodes");
     let MacroTemplate::Variants(variant_objects) = &variants_template else {
         panic!("expected Variants template");
     };
     assert_eq!(variant_objects.len(), 2);
     assert_eq!(
-        variants_template.to_structural_nota(),
+        variants_template.to_structural_dotos(),
         "(Variants Decision Correction)"
     );
 
-    let reference_template = MacroTemplate::from_structural_nota("(Reference Vector. $Type)")
+    let reference_template = MacroTemplate::from_structural_dotos("(Reference Vector.$Type)")
         .expect("Reference template decodes");
     assert!(matches!(reference_template, MacroTemplate::Reference(_)));
     assert_eq!(
-        reference_template.to_structural_nota(),
-        "(Reference Vector. $Type)"
+        reference_template.to_structural_dotos(),
+        "(Reference Vector.$Type)"
     );
 }
 
 #[test]
 fn expansion_template_enum_rejects_unknown_heads_with_typed_errors() {
-    use nota::StructuralMacroNode;
+    use dotos::StructuralMacroNode;
     use schema::MacroTemplate;
 
-    let unknown_head = MacroTemplate::from_structural_nota("(Bogus $X)")
+    let unknown_head = MacroTemplate::from_structural_dotos("(Bogus $X)")
         .expect_err("unknown template head does not decode");
     assert!(matches!(
         SchemaError::from(unknown_head),
         SchemaError::UnsupportedMacroNodeStructure { .. }
     ));
 
-    let unknown_type_kind = MacroTemplate::from_structural_nota("(Type (Bogus $Name $Body))")
+    let unknown_type_kind = MacroTemplate::from_structural_dotos("(Type (Bogus $Name $Body))")
         .expect_err("unknown type-template kind does not decode");
     assert!(matches!(
         SchemaError::from(unknown_type_kind),

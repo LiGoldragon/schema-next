@@ -1,7 +1,7 @@
 # Architecture
 
 `schema` is the build-time authored `.schema` parser and lowering
-bridge. It parses NOTA-shaped `.schema` source, holds the typed source model,
+bridge. It parses DOTOS-shaped `.schema` source, holds the typed source model,
 lowers into the semantic schema value, owns schema identity and evolution, and
 exposes the typed values consumed by `schema-rust`. It contains the schema
 library source extracted from the old `schema` repository so producers can move
@@ -9,7 +9,7 @@ off that repository before `schema` is repurposed as the future live runtime
 component.
 
 This document records both the current implementation and the accepted target
-design of the schema/NOTA type system. The target design is the design of
+design of the schema/DOTOS type system. The target design is the design of
 record: where current code diverges, the divergence is named as work to do, not
 as settled shape. Open questions are marked OPEN and are not to be treated as
 decided.
@@ -36,10 +36,10 @@ depend on generated Rust and on strict binary/text contract surfaces.
 ## Foundational tenets
 
 These tenets govern both the source language and the semantic model. They are
-the gate every schema/NOTA form is checked against.
+the gate every schema/DOTOS form is checked against.
 
 - Strict typed positional data. The expected type plus position determines
-  every value. The type is always known ahead at every NOTA boundary: file
+  every value. The type is always known ahead at every DOTOS boundary: file
   kind, schema slot, field position, variant payload, operation argument, and
   reply slot. Type is never inferred from surface syntax.
 - Positionality is the golden rule. There is no named binding, no keyword
@@ -87,7 +87,7 @@ The semantic schema is one model viewed two ways. The split is landed: the
 stored model is the stringless `CoreSchema` substrate (`src/core.rs`) plus the
 `NameTable` (`src/identifier.rs`), and `TrueSchema` (`src/view.rs`) is the
 projected view over that pair. The name-bearing tree survives only as the
-crate-internal codec and hash sidecar (`SchemaTree` in `src/schema.rs`): NOTA
+crate-internal codec and hash sidecar (`SchemaTree` in `src/schema.rs`): DOTOS
 text, canonical schema text, and rkyv binary bytes project through it, so every
 codec surface stays value-exact with the pre-split format. Derived field names
 are stored nowhere — a field's name is either its explicit disambiguator row in
@@ -237,7 +237,7 @@ The dot replaces all name-adjacency-value forms:
 
 - data-carrying variants `(Variant Data)` become `Variant.Data`;
 - inline enum `Variant.[...]` and inline struct `Variant.{...}`;
-- raw NOTA map entries `{ k v }` become `{ k.v }`;
+- raw DOTOS map entries `{ k v }` become `{ k.v }`;
 - imports and generic adjacency become dotted;
 - import path colons become dots: `signal-spirit.signal.Entry` is a
   left-associative segment chain of lowercase segments ending in the
@@ -280,7 +280,7 @@ There are exactly two dotted-prefix expectation kinds:
 - UNCAPITALIZED — the head is one or more leading lowercase name segments, as in
   map keys, import path segments, and field disambiguators.
 
-The mechanism is shared with NOTA: it is implemented once in the NOTA reader and
+The mechanism is shared with DOTOS: it is implemented once in the DOTOS reader and
 exported, and `schema` reuses it rather than hand-rolling dot-splitting
 in `src/source.rs`.
 
@@ -342,7 +342,7 @@ is lossy.
 The blast radius of the dotted-everywhere change is schema source only:
 
 - the grammar and parser;
-- the re-emitter — `to_schema_text` / `to_nota_source` must round-trip semantic
+- the re-emitter — `to_schema_text` / `to_dotos_source` must round-trip semantic
   content;
 - checked-in `.schema` files; and
 - regenerated Rust.
@@ -452,7 +452,7 @@ storage-type declarations, one per stored record type, and nothing else.
 
 These are distinct KINDS, not one document with an optional block. The
 distinction is a direct reading of the foundational tenet that the expected
-type is known ahead at every NOTA boundary starting with file kind: the file
+type is known ahead at every DOTOS boundary starting with file kind: the file
 kind fixes the expected root type, so a `sema.schema` file expects the
 storage-declaration root and a general schema file expects the six-block root,
 and neither borrows a slot from the other. A storage declaration is therefore
@@ -494,7 +494,7 @@ expansion re-parses its expanded object stream through the same reader.
 This hand-written per-context reader is the accepted type-reference and dispatch
 mechanism, not a stopgap. The generated parenthesized, string-name-keyed
 resolver pipeline was deliberately deleted: there is no `build.rs`, no
-`src/reference_resolver_generated.rs`, no `schemas/reference-grammar.nota` seed,
+`src/reference_resolver_generated.rs`, no `schemas/reference-grammar.dotos` seed,
 and no `schema-cc` build-time generator, and their absence is enforced
 by `tests/legacy_reference_pipeline.rs`. The rejected alternative — a
 programmable grammar-data dispatch table decoded and code-generated by a
@@ -508,8 +508,8 @@ the surviving type, generic, and impl entry forms.
 What is hand-written and accepted is the per-context dispatch — which context
 expects which dotted-prefix expectation kind. The low-level dotted-prefix split
 itself is not hand-rolled here: it is the shared expectation-mode mechanism
-exported from the NOTA reader (see "Dot-splitting is decided by expectation"), so
-`src/source.rs` chooses the expectation and the NOTA reader performs the split.
+exported from the DOTOS reader (see "Dot-splitting is decided by expectation"), so
+`src/source.rs` chooses the expectation and the DOTOS reader performs the split.
 
 Parenthesized builtin applications such as `(Vector T)`, `(Optional T)`,
 `(ScopeOf T)`, `(Map K V)`, and `(Bytes N)` are rejected rather than routed
@@ -605,7 +605,7 @@ user-defined single-type alias such as `List` still lowers through the `Vector`
 projection by definition data; the head name is a `NameTable`/source concern, not
 a dispatch key. `schemas/root.schema` describes this partition (a `SingleType` /
 `MultiType` / `Value` application variant carrying a projection enum), and the
-machine `NotaEncode`/`NotaDecode` spells each projection by its canonical name so
+machine `DotosEncode`/`DotosDecode` spells each projection by its canonical name so
 `(Vector T)`, `(Map K V)`, and `(Bytes N)` round-trip value-exact — the only
 canonical-spelling change from the old model is `(FixedBytes N)` becoming
 `(Bytes N)`.
@@ -619,10 +619,10 @@ rename- and order-stability), not absolute values, so they survive the reshape.
 Vocabulary resolution — `FixedBytes` versus `Bytes`: the model now spells the
 fixed-width value kind `Bytes`, matching the source head and grammar (the
 psyche-designed surface), and the `FixedBytes` name is retired throughout
-schema. The retirement is schema-scoped, not universal: nota
-keeps a nota-local `TypeReference::FixedBytes` width leaf
-(`nota/src/instance_schema.rs`), which schema projects into its own
-`Bytes` value application rather than mirroring the nota name. The dynamic-length
+schema. The retirement is schema-scoped, not universal: dotos
+keeps a dotos-local `TypeReference::FixedBytes` width leaf
+(`dotos/src/instance_schema.rs`), which schema projects into its own
+`Bytes` value application rather than mirroring the dotos name. The dynamic-length
 bytes scalar remains the separate `TypeReference::Bytes` leaf. The
 two are distinguished by kind — a value application (`Bytes.N`, a width leaf)
 versus a scalar leaf (bare `Bytes`) — exactly as the grammar already

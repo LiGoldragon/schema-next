@@ -3,16 +3,16 @@
 //! `Head.Payload`; multi-argument forms use `Head.(A B)`. The legacy
 //! parenthesized generic surface is rejected at this public boundary.
 
-use nota::StructuralMacroNode;
+use dotos::StructuralMacroNode;
 use schema::{ApplicationHead, Name, SchemaEngine, SchemaIdentity, TypeDeclaration, TypeReference};
 
 fn assert_round_trip(input: &str, expected: TypeReference) {
-    let decoded = TypeReference::from_structural_nota(input)
+    let decoded = TypeReference::from_structural_dotos(input)
         .unwrap_or_else(|error| panic!("{input} decodes: {error}"));
     assert_eq!(decoded, expected, "{input} decodes to the expected node");
-    let encoded = decoded.to_structural_nota();
+    let encoded = decoded.to_structural_dotos();
     assert_eq!(encoded, input, "{input} re-encodes byte-identically");
-    let redecoded = TypeReference::from_structural_nota(&encoded)
+    let redecoded = TypeReference::from_structural_dotos(&encoded)
         .unwrap_or_else(|error| panic!("{encoded} re-decodes: {error}"));
     assert_eq!(redecoded, expected, "{encoded} re-decodes to the same node");
 }
@@ -121,7 +121,7 @@ fn legacy_parenthesized_generic_forms_are_rejected() {
         "(Map Topic RecordIdentifier)",
         "(Bytes 32)",
     ] {
-        let decoded = TypeReference::from_structural_nota(source);
+        let decoded = TypeReference::from_structural_dotos(source);
         assert!(
             decoded.is_err(),
             "{source} must be rejected, got {decoded:?}"
@@ -131,7 +131,7 @@ fn legacy_parenthesized_generic_forms_are_rejected() {
 
 #[test]
 fn map_dot_key_dot_value_is_unary_nesting_and_rejected_by_map_arity() {
-    let decoded = TypeReference::from_structural_nota("Map.Topic.RecordIdentifier");
+    let decoded = TypeReference::from_structural_dotos("Map.Topic.RecordIdentifier");
     assert!(
         decoded.is_err(),
         "Map.Topic.RecordIdentifier supplies one nested payload to Map, got {decoded:?}"

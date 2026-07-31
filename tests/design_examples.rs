@@ -9,7 +9,7 @@
 //! a design report cites a test, the test in this file should be the
 //! canonical example.
 
-use nota::{Document, StructureShape};
+use dotos::{Document, StructureShape};
 use schema::{
     EnumDeclaration, MacroContext, MacroDispatch, MacroLibrary, MacroObject, MacroPair,
     MacroPosition, MacroRegistry, Name, Root, SchemaEngine, SchemaError, SchemaIdentity,
@@ -116,7 +116,7 @@ fn design_example_type_reference_macro_captures_use_dollar_sigils() {
         "
         (SchemaMacro Bag TypeReference
           (Bag $Type)
-          (Reference Vector. $Type))
+          (Reference Vector.$Type))
         ",
     )
     .expect("user macro definitions parse");
@@ -259,7 +259,7 @@ fn design_example_default_engine_uses_strict_structural_macros() {
     );
 }
 
-/// Illustrates: the schema engine consumes the NOTA first-pass
+/// Illustrates: the schema engine consumes the DOTOS first-pass
 /// structure header. The header is recorded before semantic macro
 /// lowering so macro dispatch can be tested against the same compact
 /// first-two-level shape witness that will later feed signal-style
@@ -292,10 +292,10 @@ fn design_example_schema_lowering_records_source_structure_header() {
             (StructureShape::Document, 6),
             (StructureShape::Brace, 0),
             (StructureShape::SquareBracket, 1),
-            (StructureShape::Atom, 0),
+            (StructureShape::Application, 0),
             (StructureShape::SquareBracket, 1),
             (StructureShape::Atom, 0),
-            (StructureShape::Brace, 3),
+            (StructureShape::Brace, 2),
             (StructureShape::Unknown, 15),
         ],
     );
@@ -360,7 +360,7 @@ fn design_example_macro_node_definition_lists_structural_cases() {
     );
 
     let document =
-        Document::parse("Entry { Topic * } Kind [Decision] Topic String").expect("nota parses");
+        Document::parse("Entry { Topic * } Kind [Decision] Topic String").expect("dotos parses");
     let struct_pair = MacroPair {
         name: document.root_object_at(0).expect("struct name"),
         definition: document.root_object_at(1).expect("struct value"),
@@ -378,7 +378,7 @@ fn design_example_macro_node_definition_lists_structural_cases() {
     assert!(namespace.matches(MacroObject::Pair(enum_pair)));
     assert!(namespace.matches(MacroObject::Pair(newtype_pair)));
 
-    let malformed = Document::parse("(Entry String)").expect("nota parses");
+    let malformed = Document::parse("(Entry String)").expect("dotos parses");
     let error = registry
         .lower(
             MacroObject::Block(malformed.root_object_at(0).expect("malformed declaration")),
@@ -398,7 +398,7 @@ fn design_example_macro_node_definition_lists_structural_cases() {
 /// read at a known schema-node position.
 #[test]
 fn design_example_schema_node_macro_call_is_tagged_data() {
-    let document = Document::parse("(Normalize [Topic])").expect("nota parses");
+    let document = Document::parse("(Normalize [Topic])").expect("dotos parses");
     let node = SchemaNode::from_block(document.root_object_at(0).expect("macro node"))
         .expect("schema node parses");
 
@@ -469,7 +469,7 @@ fn design_example_user_declared_macros_extend_structural_and_named_slots() {
         "
         (SchemaMacro Bag TypeReference
           (Bag $Type)
-          (Reference Vector. $Type))
+          (Reference Vector.$Type))
         ",
     )
     .expect("user macro definitions parse");

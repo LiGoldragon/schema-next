@@ -17,8 +17,8 @@ use crate::{
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -49,7 +49,7 @@ impl ImportSource {
     /// underscores (Cargo's lib-name normalisation); the module
     /// segments keep the single-colon translation as `::`. Generated
     /// support types the importing module also re-declares (the
-    /// per-module `NotaDecodeError`) live here, so the emitter can
+    /// per-module `DotosDecodeError`) live here, so the emitter can
     /// bridge them across the crate boundary.
     pub fn module_path(&self) -> String {
         let crate_identifier = self.crate_name.as_str().replace('-', "_");
@@ -101,8 +101,8 @@ impl TryFrom<&Name> for ImportSource {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -188,7 +188,7 @@ impl ResolvedImport {
     /// The Rust module path the imported type lives under in the
     /// dependency crate (`<crate>::schema::<module>`). The emitter
     /// bridges each distinct module's generated support types (the
-    /// per-module `NotaDecodeError`) across the crate boundary.
+    /// per-module `DotosDecodeError`) across the crate boundary.
     pub fn module_path(&self) -> String {
         self.source.module_path()
     }

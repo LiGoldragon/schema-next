@@ -1,4 +1,4 @@
-use nota::{Document, NotaDecode, NotaEncode};
+use dotos::{Document, DotosDecode, DotosEncode};
 use schema::{
     Name, SchemaEngine, SchemaError, SchemaIdentity, TrueSchema, TypeDeclaration, TypeReference,
 };
@@ -29,7 +29,7 @@ fn authored_schema_decodes_directly_to_true_schema() {
 }
 
 #[test]
-fn true_schema_round_trips_through_binary_and_structured_nota() {
+fn true_schema_round_trips_through_binary_and_structured_dotos() {
     let true_schema = true_schema_fixture();
 
     let bytes = true_schema
@@ -38,10 +38,10 @@ fn true_schema_round_trips_through_binary_and_structured_nota() {
     let recovered = TrueSchema::from_binary_bytes(&bytes).expect("true schema decodes from rkyv");
     assert_eq!(recovered, true_schema);
 
-    let nota = true_schema.to_nota();
-    let document = Document::parse(&nota).expect("true schema NOTA parses");
-    let decoded = TrueSchema::from_nota_block(&document.root_objects()[0])
-        .expect("true schema decodes from structured NOTA");
+    let dotos = true_schema.to_dotos();
+    let document = Document::parse(&dotos).expect("true schema DOTOS parses");
+    let decoded = TrueSchema::from_dotos_block(&document.root_objects()[0])
+        .expect("true schema decodes from structured DOTOS");
     assert_eq!(decoded, true_schema);
 }
 

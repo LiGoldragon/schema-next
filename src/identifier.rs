@@ -50,7 +50,7 @@
 //! stands today — it is not a dormant mechanism awaiting a later wiring into the
 //! hashing domains.
 
-use nota::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, Delimiter, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
 
 use crate::{SchemaError, schema::Name};
 
@@ -62,8 +62,8 @@ use crate::{SchemaError, schema::Name};
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Copy,
     Debug,
@@ -163,7 +163,7 @@ impl NominalIdentifier {
     }
 
     /// The 32-character lowercase-hex projection of the 128-bit digest, used as
-    /// the identifier's NOTA leaf and human-facing address.
+    /// the identifier's DOTOS leaf and human-facing address.
     pub fn to_hex(&self) -> String {
         self.digest
             .iter()
@@ -185,19 +185,19 @@ impl NominalIdentifier {
     }
 }
 
-/// A `NominalIdentifier` projects to the positional NOTA record
+/// A `NominalIdentifier` projects to the positional DOTOS record
 /// `(<Kind> <hex-digest>)`: the kind as its bare enum atom and the digest as a
 /// 32-character lowercase-hex leaf.
-impl NotaDecode for NominalIdentifier {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let children = NotaBlock::new(block).expect_children(
+impl DotosDecode for NominalIdentifier {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let children = DotosBlock::new(block).expect_children(
             Delimiter::Parenthesis,
             "NominalIdentifier",
             2,
         )?;
-        let kind = DeclarationKind::from_nota_block(&children[0])?;
-        let hex = NotaBlock::new(&children[1]).parse_string()?;
-        let digest = Self::digest_from_hex(&hex).ok_or_else(|| NotaDecodeError::InvalidValue {
+        let kind = DeclarationKind::from_dotos_block(&children[0])?;
+        let hex = DotosBlock::new(&children[1]).parse_string()?;
+        let digest = Self::digest_from_hex(&hex).ok_or_else(|| DotosDecodeError::InvalidValue {
             type_name: "NominalIdentifier",
             value: hex,
             reason: "expected 32 lowercase hexadecimal digits".to_owned(),
@@ -206,9 +206,9 @@ impl NotaDecode for NominalIdentifier {
     }
 }
 
-impl NotaEncode for NominalIdentifier {
-    fn to_nota(&self) -> String {
-        format!("({} {})", self.kind.to_nota(), self.to_hex())
+impl DotosEncode for NominalIdentifier {
+    fn to_dotos(&self) -> String {
+        format!("({} {})", self.kind.to_dotos(), self.to_hex())
     }
 }
 
@@ -223,8 +223,8 @@ impl NotaEncode for NominalIdentifier {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -298,8 +298,8 @@ impl From<(DeclarationKind, Name)> for NameDeclaration {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,

@@ -18,7 +18,7 @@
 
 use std::fmt;
 
-use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
 
 use crate::{SchemaError, view::TrueSchema};
 
@@ -79,7 +79,7 @@ impl ContentHash {
 
     /// Parse a 64-character lowercase-hex address back into 32 bytes. Any other
     /// length or a non-hex character yields `None`. This is the inverse of
-    /// [`ContentHash::to_hex`], so an address survives a NOTA round trip.
+    /// [`ContentHash::to_hex`], so an address survives a DOTOS round trip.
     fn from_hex(hex: &str) -> Option<Self> {
         if hex.len() != 64 {
             return None;
@@ -93,12 +93,12 @@ impl ContentHash {
 }
 
 /// A `ContentHash` projects to its 64-character lowercase-hex address as a
-/// single NOTA leaf, so a receipt edge keyed by a hash pair round-trips through
+/// single DOTOS leaf, so a receipt edge keyed by a hash pair round-trips through
 /// the human projection.
-impl NotaDecode for ContentHash {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let hex = NotaBlock::new(block).parse_string()?;
-        Self::from_hex(&hex).ok_or_else(|| NotaDecodeError::InvalidValue {
+impl DotosDecode for ContentHash {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let hex = DotosBlock::new(block).parse_string()?;
+        Self::from_hex(&hex).ok_or_else(|| DotosDecodeError::InvalidValue {
             type_name: "ContentHash",
             value: hex,
             reason: "expected 64 lowercase hexadecimal digits".to_owned(),
@@ -106,8 +106,8 @@ impl NotaDecode for ContentHash {
     }
 }
 
-impl NotaEncode for ContentHash {
-    fn to_nota(&self) -> String {
+impl DotosEncode for ContentHash {
+    fn to_dotos(&self) -> String {
         self.to_hex()
     }
 }

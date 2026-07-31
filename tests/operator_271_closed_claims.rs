@@ -21,7 +21,7 @@
 //! - The flake's `library-mirrors-collapsed` check — Nix-side regression
 //!   guard for claim 1.
 
-use nota::{Block, Delimiter, Document};
+use dotos::{Block, Delimiter, Document};
 use schema::{
     MacroLibrary, MacroLibraryArtifact, SchemaEngine, SchemaIdentity, SchemaMacro,
     SchemaSourceArtifact, TrueSchema, TypeDeclaration,
@@ -34,7 +34,7 @@ use schema::{
 #[test]
 fn macro_library_source_entries_are_one_type() {
     let source = include_str!("../schemas/builtin-macros.macro-library");
-    let library = MacroLibrary::from_nota_source(source)
+    let library = MacroLibrary::from_dotos_source(source)
         .expect("checked-in builtin macro library decodes through one MacroLibrary type");
 
     assert!(
@@ -64,15 +64,15 @@ fn macro_library_source_entries_are_one_type() {
 #[test]
 fn macro_library_artifact_wraps_the_one_library_type() {
     let source = include_str!("../schemas/builtin-macros.macro-library");
-    let artifact = MacroLibraryArtifact::from_nota_source(source)
+    let artifact = MacroLibraryArtifact::from_dotos_source(source)
         .expect("checked-in builtin library decodes as artifact");
 
-    // The artifact projects to and from NOTA + rkyv through the same one
+    // The artifact projects to and from DOTOS + rkyv through the same one
     // library type — no Data mirror is required to traverse the boundary.
-    let nota = artifact.to_nota_source();
-    let from_nota = MacroLibraryArtifact::from_nota_source(&nota)
-        .expect("artifact NOTA round-trips through one library type");
-    assert_eq!(artifact.library(), from_nota.library());
+    let dotos = artifact.to_dotos_source();
+    let from_dotos = MacroLibraryArtifact::from_dotos_source(&dotos)
+        .expect("artifact DOTOS round-trips through one library type");
+    assert_eq!(artifact.library(), from_dotos.library());
 
     let bytes = artifact
         .to_binary_bytes()
@@ -166,7 +166,7 @@ fn macro_library_split_does_not_return_through_public_surface() {
 }
 
 /// Claim 4 — Strict schema syntax: the production `core.schema` and
-/// `spirit-min.schema` carry legal NOTA enum bodies. Root headers use compact
+/// `spirit-min.schema` carry legal DOTOS enum bodies. Root headers use compact
 /// exported object names, namespace enums use structural variant signatures,
 /// and the retired `Record@Entry` short-suffix sugar must not appear.
 #[test]
@@ -189,10 +189,10 @@ fn production_schema_sources_use_honest_enum_bodies() {
             "{name} must not carry the retired `@` short-suffix sugar"
         );
 
-        // Each schema must parse as legal NOTA — proves the honest bodies
+        // Each schema must parse as legal DOTOS — proves the honest bodies
         // are syntactically valid through the same parser the engine uses.
         Document::parse(source).unwrap_or_else(|error| {
-            panic!("{name} must parse as legal NOTA (honest bodies are NOTA-valid): {error}")
+            panic!("{name} must parse as legal DOTOS (honest bodies are DOTOS-valid): {error}")
         });
     }
 }
@@ -203,7 +203,7 @@ fn production_schema_sources_use_honest_enum_bodies() {
 #[test]
 fn spirit_min_input_enum_body_has_explicit_payload_variants() {
     let source = include_str!("../schemas/spirit-min.schema");
-    let document = Document::parse(source).expect("spirit-min.schema parses as NOTA");
+    let document = Document::parse(source).expect("spirit-min.schema parses as DOTOS");
     let root_objects = document.root_objects();
 
     let input = root_objects
@@ -232,10 +232,11 @@ fn spirit_min_input_enum_body_has_explicit_payload_variants() {
     let names = variants
         .iter()
         .map(|variant| {
-            variant
-                .demote_to_string()
-                .and_then(|text| text.split_once('.').map(|(name, _)| name))
-                .expect("spirit-min input variant is dotted with an explicit payload type")
+            let Block::Application { head, .. } = variant else {
+                panic!("spirit-min input variant is dotted with an explicit payload type")
+            };
+            head.demote_to_string()
+                .expect("spirit-min input variant has an atom head")
         })
         .collect::<Vec<_>>();
     assert_eq!(names, vec!["Record", "Observe"]);
@@ -281,7 +282,7 @@ fn schema_is_typed_data_with_named_field_accessors() {
 /// Claim 5 — authored schema source text projects into a typed
 /// `SchemaSourceArtifact`, and both source text and rkyv source bytes
 /// round-trip. The semantic `TrueSchema` value keeps only the binary archive
-/// projection; the retired `.asschema` NOTA artifact path is absent.
+/// projection; the retired `.asschema` DOTOS artifact path is absent.
 #[test]
 fn schema_source_and_semantic_schema_round_trip_without_asschema_artifacts() {
     let source = include_str!("../schemas/core.schema");

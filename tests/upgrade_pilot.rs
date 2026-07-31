@@ -5,7 +5,7 @@
 //! method path on schema-emitted typed objects, not a grep or a sketch.
 //!
 //! Per designer 447 §"Block 1" + §"Block 2": the test demonstrates the
-//! NOTA-to-object correspondence — a NOTA-encoded `UpgradeObject` is
+//! DOTOS-to-object correspondence — a DOTOS-encoded `UpgradeObject` is
 //! decoded into the typed object, applied against a stored `TrueSchema`,
 //! and the resulting next-version schema matches the expected shape.
 //!

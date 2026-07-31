@@ -1,13 +1,13 @@
-use nota::Document;
-use schema::{RawDatatypeMap, RawNotaDatatype, RawNotaSequence, RawSchemaFile, SchemaError};
+use dotos::Document;
+use schema::{RawDatatypeMap, RawDotosDatatype, RawDotosSequence, RawSchemaFile, SchemaError};
 
 const CORE_SCHEMA: &str = include_str!("fixtures/raw-core/core.schema");
 const NON_MAP_ROOT_SCHEMA: &str = include_str!("fixtures/raw-core/non-map-root.schema");
 const ODD_MAP_SCHEMA: &str = include_str!("fixtures/raw-core/odd-map.schema");
 
 #[test]
-fn raw_core_schema_fixture_is_legal_nota_before_schema_reading() {
-    let document = Document::parse(CORE_SCHEMA).expect("core.schema parses as NOTA");
+fn raw_core_schema_fixture_is_legal_dotos_before_schema_reading() {
+    let document = Document::parse(CORE_SCHEMA).expect("core.schema parses as DOTOS");
 
     assert_eq!(document.holds_root_objects(), 1);
 }
@@ -109,7 +109,7 @@ fn raw_core_schema_preserves_native_key_value_and_enum_forms() {
 
 #[test]
 fn raw_core_schema_rejects_non_map_root() {
-    Document::parse(NON_MAP_ROOT_SCHEMA).expect("negative fixture remains NOTA-legal");
+    Document::parse(NON_MAP_ROOT_SCHEMA).expect("negative fixture remains DOTOS-legal");
 
     let error = RawSchemaFile::from_path_and_source("schemas/core.schema", NON_MAP_ROOT_SCHEMA)
         .expect_err("root must be the known datatype key-value map");
@@ -124,7 +124,7 @@ fn raw_core_schema_rejects_non_map_root() {
 
 #[test]
 fn raw_core_schema_rejects_entry_without_top_level_dot() {
-    Document::parse(ODD_MAP_SCHEMA).expect("negative fixture remains NOTA-legal");
+    Document::parse(ODD_MAP_SCHEMA).expect("negative fixture remains DOTOS-legal");
 
     let error = RawSchemaFile::from_path_and_source("schemas/core.schema", ODD_MAP_SCHEMA)
         .expect_err("each datatype map entry must be a dotted key.datatype form");
@@ -132,13 +132,13 @@ fn raw_core_schema_rejects_entry_without_top_level_dot() {
     assert!(
         matches!(
             error,
-            SchemaError::NotaDecode(nota::NotaDecodeError::ExpectedDottedEntry { .. })
+            SchemaError::DotosDecode(dotos::DotosDecodeError::ExpectedDottedEntry { .. })
         ),
         "a map entry lacking a top-level dot is rejected, got {error:?}"
     );
 }
 
-fn assert_atom_sequence(sequence: &RawNotaSequence, expected: &[&str]) {
+fn assert_atom_sequence(sequence: &RawDotosSequence, expected: &[&str]) {
     assert_eq!(
         sequence
             .items()
@@ -156,7 +156,7 @@ fn assert_map_atoms(map: &RawDatatypeMap, expected: &[(&str, &str)]) {
     let actual = expected
         .iter()
         .map(|(key, _)| {
-            let RawNotaDatatype::Atom(value) = map.datatype_named(key).expect("map entry") else {
+            let RawDotosDatatype::Atom(value) = map.datatype_named(key).expect("map entry") else {
                 panic!("expected atom value for map key {key}");
             };
             (*key, value.as_str())

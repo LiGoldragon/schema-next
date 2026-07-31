@@ -1,8 +1,8 @@
 use std::fmt;
 
-use nota::{
-    Block, Delimiter, DottedExpectation, NotaBlock, NotaBody, NotaDecode, NotaDecodeError,
-    NotaEncode, NotaString, StructuralMacroNode,
+use dotos::{
+    Block, Delimiter, DotosBlock, DotosBody, DotosDecode, DotosDecodeError, DotosEncode,
+    DotosString, DottedExpectation, StructuralMacroNode,
 };
 
 use crate::{
@@ -82,7 +82,7 @@ impl Name {
     }
 
     pub fn qualifies_as_symbol_name(&self) -> bool {
-        // The structural symbol predicate retained from the NOTA reader
+        // The structural symbol predicate retained from the DOTOS reader
         // (`Atom::qualifies_as_symbol`): a non-empty atom whose every character
         // is bare-safe — no whitespace and none of the delimiter or quote
         // characters. No numeric meaning is inferred; a numeric-looking atom
@@ -110,63 +110,63 @@ impl Name {
     }
 }
 
-impl NotaDecode for Name {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        NotaBlock::new(block).parse_string().map(Self::new)
+impl DotosDecode for Name {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        DotosBlock::new(block).parse_string().map(Self::new)
     }
 }
 
-impl NotaEncode for Name {
-    fn to_nota(&self) -> String {
+impl DotosEncode for Name {
+    fn to_dotos(&self) -> String {
         if self.qualifies_as_symbol_name() {
             self.as_str().to_owned()
         } else {
-            NotaString::new(self.as_str()).format()
+            DotosString::new(self.as_str()).format()
         }
     }
 }
 
-/// A `Name` decodes from a bare symbol atom and re-emits through its NOTA
+/// A `Name` decodes from a bare symbol atom and re-emits through its DOTOS
 /// codec, so a structural-macro node can carry it as a head or leaf capture.
 /// In the reference grammar the application form's `pascal_head` gate runs
 /// first, so only a PascalCase atom reaches this decode there; the
 /// symbol-case acceptance keeps the node usable wherever a qualified name is
 /// already known to sit at the position.
-impl nota::StructuralMacroNode for Name {
+impl dotos::StructuralMacroNode for Name {
     type Error = SchemaError;
 
-    fn structural_position() -> nota::PositionPredicate {
-        nota::PositionPredicate::named("type name")
+    fn structural_position() -> dotos::PositionPredicate {
+        dotos::PositionPredicate::named("type name")
     }
 
-    fn structural_variants() -> Vec<nota::StructuralVariant> {
+    fn structural_variants() -> Vec<dotos::StructuralVariant> {
         vec![
-            nota::BlockShape::symbol(Some(nota::CaptureName::new("name")))
+            dotos::BlockShape::symbol(Some(dotos::CaptureName::new("name")))
                 .into_structural_variant("Name", "symbol atom"),
         ]
     }
 
     fn from_structural_block(
         block: &Block,
-    ) -> Result<Self, nota::StructuralMacroError<Self::Error>> {
+    ) -> Result<Self, dotos::StructuralMacroError<Self::Error>> {
         block
             .schema_name()
-            .map_err(nota::StructuralMacroError::MatchedNode)
+            .map_err(dotos::StructuralMacroError::MatchedNode)
     }
 
     fn from_structural_candidate(
-        candidate: nota::MacroCandidate<'_>,
-    ) -> Result<Self, nota::StructuralMacroError<Self::Error>> {
+        candidate: dotos::MacroCandidate<'_>,
+    ) -> Result<Self, dotos::StructuralMacroError<Self::Error>> {
         match candidate.blocks() {
             [block] => Self::from_structural_block(block),
-            blocks => Err(nota::StructuralMacroError::ExpectedSingleRoot {
+            blocks => Err(dotos::StructuralMacroError::ExpectedSingleRoot {
                 found: blocks.len(),
             }),
         }
     }
 
-    fn to_structural_nota(&self) -> String {
-        self.to_nota()
+    fn to_structural_dotos(&self) -> String {
+        self.to_dotos()
     }
 }
 
@@ -264,28 +264,28 @@ impl SymbolPath {
     }
 }
 
-impl NotaDecode for SymbolPath {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+impl DotosDecode for SymbolPath {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
         let children =
-            NotaBlock::new(block).expect_children(Delimiter::Parenthesis, "SymbolPath", 2)?;
+            DotosBlock::new(block).expect_children(Delimiter::Parenthesis, "SymbolPath", 2)?;
         let variant = children[0]
             .demote_to_string()
-            .ok_or(NotaDecodeError::ExpectedAtom {
+            .ok_or(DotosDecodeError::ExpectedAtom {
                 type_name: "SymbolPath variant",
             })?;
         if variant != "SymbolPath" {
-            return Err(NotaDecodeError::UnknownVariant {
+            return Err(DotosDecodeError::UnknownVariant {
                 enum_name: "SymbolPath",
                 variant: variant.to_owned(),
             });
         }
-        Ok(Self(Vec::<Name>::from_nota_block(&children[1])?))
+        Ok(Self(Vec::<Name>::from_dotos_block(&children[1])?))
     }
 }
 
-impl NotaEncode for SymbolPath {
-    fn to_nota(&self) -> String {
-        format!("(SymbolPath {})", self.0.to_nota())
+impl DotosEncode for SymbolPath {
+    fn to_dotos(&self) -> String {
+        format!("(SymbolPath {})", self.0.to_dotos())
     }
 }
 
@@ -311,8 +311,8 @@ impl fmt::Display for SymbolPath {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -377,8 +377,8 @@ impl Root {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -481,8 +481,8 @@ impl From<&RootApplication> for TypeReference {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -843,7 +843,7 @@ impl SchemaTree {
     /// alone. This is the same rule enforced at the SEMANTIC boundary — the
     /// construction/decode surface every schema value passes through
     /// ([`crate::TrueSchema::from_tree`], reached by the programmatic tree
-    /// constructor, binary decode, and NOTA decode) — so a schema value that
+    /// constructor, binary decode, and DOTOS decode) — so a schema value that
     /// never touched the source reader still cannot carry a duplicate generic or
     /// frame binder. Two shapes carry binders: a native `Declaration` (plain
     /// generic or parameterized enum frame) in `self.namespace`, and an imported
@@ -889,7 +889,7 @@ impl SchemaTree {
     /// roots or the resolved imports. This is the same one-namespace rule
     /// enforced at the SEMANTIC boundary — the construction/decode surface every
     /// schema value passes through ([`crate::TrueSchema::from_tree`], reached by
-    /// the programmatic tree constructor, binary decode, and NOTA decode) — so a
+    /// the programmatic tree constructor, binary decode, and DOTOS decode) — so a
     /// schema value that never touched the source reader still cannot carry two
     /// declarations of one name. Decomposition mints every top-level declaration
     /// through the same `NameHarvest::declare` path keyed on (kind, name), so two
@@ -1221,7 +1221,7 @@ impl Root {
         match self {
             Self::Enum(declaration) => declaration.body_schema_text(),
             Self::Application(application) => {
-                TypeReference::from(application.as_ref()).to_structural_nota()
+                TypeReference::from(application.as_ref()).to_structural_dotos()
             }
         }
     }
@@ -1231,7 +1231,7 @@ impl Declaration {
     /// Project a non-parameterized declaration as a `types` block entry:
     /// `TypeName.Definition`.
     fn types_entry_text(&self) -> String {
-        format!("{}.{}", self.name.to_nota(), self.value.to_schema_text())
+        format!("{}.{}", self.name.to_dotos(), self.value.to_schema_text())
     }
 
     /// Project a parameterized declaration as a `generics` block entry:
@@ -1240,12 +1240,12 @@ impl Declaration {
         let binders = self
             .parameters
             .iter()
-            .map(Name::to_nota)
+            .map(Name::to_dotos)
             .collect::<Vec<_>>()
             .join(" ");
         format!(
             "{}.(({}) {})",
-            self.name.to_nota(),
+            self.name.to_dotos(),
             binders,
             self.value.to_schema_text()
         )
@@ -1257,7 +1257,7 @@ impl TypeDeclaration {
         match self {
             Self::Struct(declaration) => declaration.body_schema_text(),
             Self::Enum(declaration) => declaration.body_schema_text(),
-            Self::Newtype(declaration) => declaration.reference.to_structural_nota(),
+            Self::Newtype(declaration) => declaration.reference.to_structural_dotos(),
         }
     }
 }
@@ -1287,12 +1287,12 @@ impl StructFieldMap {
             if occurrences == 1 && field.name != derived {
                 return Err(SchemaError::ExplicitFieldOnUniqueProductComponent {
                     field: field.name.to_string(),
-                    type_name: field.reference.to_structural_nota(),
+                    type_name: field.reference.to_structural_dotos(),
                 });
             }
             if occurrences > 1 && field.name == derived {
                 return Err(SchemaError::DuplicateImplicitProductComponent {
-                    type_name: field.reference.to_structural_nota(),
+                    type_name: field.reference.to_structural_dotos(),
                 });
             }
             if occurrences > 1
@@ -1305,7 +1305,7 @@ impl StructFieldMap {
             {
                 return Err(SchemaError::DuplicateExplicitProductComponentIdentity {
                     field: field.name.to_string(),
-                    type_name: field.reference.to_structural_nota(),
+                    type_name: field.reference.to_structural_dotos(),
                 });
             }
         }
@@ -1321,12 +1321,12 @@ impl StructFieldMap {
 
 impl FieldDeclaration {
     fn to_schema_text(&self, product: &StructFieldMap) -> String {
-        let reference = self.reference.to_structural_nota();
+        let reference = self.reference.to_structural_dotos();
         let derived = self.reference.derived_field_name();
         if product.reference_count(&self.reference) == 1 && self.name == derived {
             reference
         } else {
-            format!("{}.{}", self.name.to_nota(), reference)
+            format!("{}.{}", self.name.to_dotos(), reference)
         }
     }
 }
@@ -1340,9 +1340,9 @@ impl EnumDeclaration {
 impl EnumVariant {
     fn to_schema_text(&self) -> String {
         match &self.payload {
-            None => self.name.to_nota(),
+            None => self.name.to_dotos(),
             Some(payload) => {
-                Delimiter::Parenthesis.wrap([self.name.to_nota(), payload.to_structural_nota()])
+                Delimiter::Parenthesis.wrap([self.name.to_dotos(), payload.to_structural_dotos()])
             }
         }
     }
@@ -1359,7 +1359,7 @@ impl ImplBlock {
     /// Shared by standalone impl blocks and the fused catalog a declaration
     /// carries, so both project to the same `TypeName.[ … ]` shape.
     fn impls_entry_text(target: &Name, catalog: &ImplCatalog) -> String {
-        format!("{}.{}", target.to_nota(), catalog.to_schema_text())
+        format!("{}.{}", target.to_dotos(), catalog.to_schema_text())
     }
 }
 
@@ -1372,10 +1372,10 @@ impl ImplCatalog {
 impl ImplReference {
     fn to_schema_text(&self) -> String {
         match self {
-            Self::Marker(trait_name) => trait_name.to_nota(),
+            Self::Marker(trait_name) => trait_name.to_dotos(),
             Self::TraitImpl(trait_name, methods) => format!(
                 "{} {}",
-                trait_name.to_nota(),
+                trait_name.to_dotos(),
                 Delimiter::SquareBracket.wrap(methods.iter().map(MethodSignature::to_schema_text))
             ),
             Self::InherentMethod(signature) => signature.to_schema_text(),
@@ -1388,9 +1388,9 @@ impl MethodSignature {
         let parameters =
             Delimiter::Brace.wrap(self.parameters.iter().map(MethodParameter::to_schema_text));
         Delimiter::Parenthesis.wrap([
-            self.name.to_nota(),
+            self.name.to_dotos(),
             parameters,
-            self.return_reference.to_structural_nota(),
+            self.return_reference.to_structural_dotos(),
         ])
     }
 }
@@ -1399,8 +1399,8 @@ impl MethodParameter {
     fn to_schema_text(&self) -> String {
         format!(
             "{}.{}",
-            self.name.to_nota(),
-            self.reference.to_structural_nota()
+            self.name.to_dotos(),
+            self.reference.to_structural_dotos()
         )
     }
 }
@@ -1409,8 +1409,8 @@ impl MethodParameter {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -1430,7 +1430,7 @@ impl ImportDeclaration {
         self.source
             .plain_name()
             .map(|name| name.as_str().replace(':', "."))
-            .unwrap_or_else(|| self.source.to_structural_nota())
+            .unwrap_or_else(|| self.source.to_structural_dotos())
     }
 }
 
@@ -1438,8 +1438,8 @@ impl ImportDeclaration {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Copy,
     Debug,
@@ -1455,8 +1455,8 @@ pub enum Visibility {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -1553,8 +1553,8 @@ impl Declaration {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Default,
@@ -1593,8 +1593,8 @@ impl ImplCatalog {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -1675,8 +1675,8 @@ pub enum ImplCompositionKey {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -1727,7 +1727,7 @@ impl MethodSignature {
                 format!(
                     "{}.{}",
                     parameter.name().as_str(),
-                    parameter.reference().to_nota()
+                    parameter.reference().to_dotos()
                 )
             })
             .collect::<Vec<_>>()
@@ -1736,7 +1736,7 @@ impl MethodSignature {
             "{} {{ {} }} {}",
             self.name.as_str(),
             parameters,
-            self.return_reference.to_nota()
+            self.return_reference.to_dotos()
         )
     }
 }
@@ -1746,8 +1746,8 @@ impl MethodSignature {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -1780,8 +1780,8 @@ impl MethodParameter {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -1942,8 +1942,8 @@ impl RustSurface {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -1986,8 +1986,8 @@ impl TypeDeclaration {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -2008,8 +2008,8 @@ impl NewtypeDeclaration {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -2084,9 +2084,9 @@ impl<'fields> IntoIterator for &'fields StructFieldMap {
     }
 }
 
-impl NotaDecode for StructFieldMap {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let body = NotaBody::from_delimited(block, Delimiter::Brace, "StructFieldMap")?;
+impl DotosDecode for StructFieldMap {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let body = DotosBody::from_delimited(block, Delimiter::Brace, "StructFieldMap")?;
         let root_objects = body.root_objects();
         let mut entries = Vec::new();
         let mut index = 0;
@@ -2094,20 +2094,20 @@ impl NotaDecode for StructFieldMap {
             let entry = DottedExpectation::Uncapitalized.read_entry(&root_objects[index..])?;
             index += entry.consumed();
             entries.push(FieldDeclaration {
-                name: Name::from_nota_block(entry.key())?,
-                reference: TypeReference::from_nota_block(entry.value())?,
+                name: Name::from_dotos_block(entry.key())?,
+                reference: TypeReference::from_dotos_block(entry.value())?,
             });
         }
         Ok(Self::new(entries))
     }
 }
 
-impl NotaEncode for StructFieldMap {
-    fn to_nota(&self) -> String {
+impl DotosEncode for StructFieldMap {
+    fn to_dotos(&self) -> String {
         let fields = self
             .entries()
             .iter()
-            .map(|entry| format!("{}.{}", entry.name.to_nota(), entry.reference.to_nota()))
+            .map(|entry| format!("{}.{}", entry.name.to_dotos(), entry.reference.to_dotos()))
             .collect::<Vec<_>>();
         format!("{{{}}}", fields.join(" "))
     }
@@ -2117,8 +2117,8 @@ impl NotaEncode for StructFieldMap {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -2133,8 +2133,8 @@ pub struct FieldDeclaration {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -2161,8 +2161,8 @@ impl EnumDeclaration {
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -2192,16 +2192,16 @@ impl EnumVariant {
 ///
 /// A head is a typed sum: a generic head may name a locally-declared
 /// parameterized type (`Local`) or a cross-crate imported one (`Imported`).
-/// NOTA decode never resolves imports, so a freshly-decoded application
+/// DOTOS decode never resolves imports, so a freshly-decoded application
 /// always carries `Local(Name)`; import resolution rewrites the head to
 /// `Imported` once the closure walk proves the name is an import. The
-/// canonical NOTA projection of either is the bare head name.
+/// canonical DOTOS projection of either is the bare head name.
 #[derive(
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -2290,7 +2290,7 @@ pub enum SingleTypeReferenceProjection {
 }
 
 impl SingleTypeReferenceProjection {
-    /// The canonical spelling of this projection in the machine NOTA codec.
+    /// The canonical spelling of this projection in the machine DOTOS codec.
     /// This is an enum-to-spelling projection (the same shape as
     /// [`TypeReference::scalar_name`]), not a name-dispatch: decoding maps the
     /// spelling back to the projection through the private `from_canonical_name`
@@ -2415,8 +2415,8 @@ pub enum TypeReference {
     },
 }
 
-impl NotaDecode for TypeReference {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+impl DotosDecode for TypeReference {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
         if let Some(name) = block.demote_to_string() {
             return match name {
                 "String" => Ok(Self::String),
@@ -2424,7 +2424,7 @@ impl NotaDecode for TypeReference {
                 "Boolean" => Ok(Self::Boolean),
                 "Path" => Ok(Self::Path),
                 "Bytes" => Ok(Self::Bytes),
-                other => Err(NotaDecodeError::UnknownVariant {
+                other => Err(DotosDecodeError::UnknownVariant {
                     enum_name: "TypeReference",
                     variant: other.to_owned(),
                 }),
@@ -2437,14 +2437,14 @@ impl NotaDecode for TypeReference {
                 ..
             } => root_objects.as_slice(),
             _ => {
-                return Err(NotaDecodeError::ExpectedDelimited {
+                return Err(DotosDecodeError::ExpectedDelimited {
                     type_name: "TypeReference",
                     delimiter: "(",
                 });
             }
         };
         if children.is_empty() {
-            return Err(NotaDecodeError::ExpectedRootCount {
+            return Err(DotosDecodeError::ExpectedRootCount {
                 type_name: "TypeReference",
                 expected: 1,
                 found: 0,
@@ -2452,37 +2452,37 @@ impl NotaDecode for TypeReference {
         }
         let variant = children[0]
             .demote_to_string()
-            .ok_or(NotaDecodeError::ExpectedAtom {
+            .ok_or(DotosDecodeError::ExpectedAtom {
                 type_name: "TypeReference variant",
             })?;
         match variant {
-            "Plain" => Ok(Self::Plain(Name::from_nota_block(&children[1])?)),
-            "Application" => Self::from_nota_application_payload(&children[1]),
-            other => Self::from_nota_generic_payload(other, children),
+            "Plain" => Ok(Self::Plain(Name::from_dotos_block(&children[1])?)),
+            "Application" => Self::from_dotos_application_payload(&children[1]),
+            other => Self::from_dotos_generic_payload(other, children),
         }
     }
 }
 
-impl NotaEncode for TypeReference {
-    fn to_nota(&self) -> String {
+impl DotosEncode for TypeReference {
+    fn to_dotos(&self) -> String {
         match self {
             Self::String => "String".to_owned(),
             Self::Integer => "Integer".to_owned(),
             Self::Boolean => "Boolean".to_owned(),
             Self::Path => "Path".to_owned(),
             Self::Bytes => "Bytes".to_owned(),
-            Self::Plain(name) => format!("(Plain {})", name.to_nota()),
+            Self::Plain(name) => format!("(Plain {})", name.to_dotos()),
             Self::SingleTypeApplication {
                 projection,
                 argument,
-            } => format!("({} {})", projection.canonical_name(), argument.to_nota()),
+            } => format!("({} {})", projection.canonical_name(), argument.to_dotos()),
             Self::MultiTypeApplication {
                 projection,
                 arguments,
             } => {
                 let arguments = arguments
                     .iter()
-                    .map(Self::to_nota)
+                    .map(Self::to_dotos)
                     .collect::<Vec<_>>()
                     .join(" ");
                 format!("({} {arguments})", projection.canonical_name())
@@ -2493,68 +2493,68 @@ impl NotaEncode for TypeReference {
             Self::Application { head, arguments } => {
                 let arguments = arguments
                     .iter()
-                    .map(Self::to_nota)
+                    .map(Self::to_dotos)
                     .collect::<Vec<_>>()
                     .join(" ");
-                format!("(Application ({} ({arguments})))", head.name().to_nota())
+                format!("(Application ({} ({arguments})))", head.name().to_dotos())
             }
         }
     }
 }
 
 /// `TypeReference` is itself a structural-macro node so the application
-/// form's variable-arity tail (`Vec<TypeReference>`, via nota's blanket
+/// form's variable-arity tail (`Vec<TypeReference>`, via dotos's blanket
 /// `StructuralMacroNode for Vec<Item>`) can decode each argument back through
 /// the full reference grammar. Decode delegates to [`Self::from_block`] (which
 /// owns the public dotted reader), and encode is the source-grammar projection
 /// — a bare PascalCase atom for a leaf and dotted positional form for every
 /// composite. This is the source-facing grammar projection, distinct from the
-/// canonical-only `NotaEncode`/`NotaDecode` machine codec above.
-impl nota::StructuralMacroNode for TypeReference {
+/// canonical-only `DotosEncode`/`DotosDecode` machine codec above.
+impl dotos::StructuralMacroNode for TypeReference {
     type Error = SchemaError;
 
-    fn structural_position() -> nota::PositionPredicate {
-        nota::PositionPredicate::named("TypeReference")
+    fn structural_position() -> dotos::PositionPredicate {
+        dotos::PositionPredicate::named("TypeReference")
     }
 
-    fn structural_variants() -> Vec<nota::StructuralVariant> {
+    fn structural_variants() -> Vec<dotos::StructuralVariant> {
         vec![
-            nota::BlockShape::symbol(Some(nota::CaptureName::new("reference")))
+            dotos::BlockShape::symbol(Some(dotos::CaptureName::new("reference")))
                 .into_structural_variant("TypeReference", "symbol reference atom"),
         ]
     }
 
     fn from_structural_block(
         block: &Block,
-    ) -> Result<Self, nota::StructuralMacroError<Self::Error>> {
-        Self::from_block(block).map_err(nota::StructuralMacroError::MatchedNode)
+    ) -> Result<Self, dotos::StructuralMacroError<Self::Error>> {
+        Self::from_block(block).map_err(dotos::StructuralMacroError::MatchedNode)
     }
 
     fn from_structural_candidate(
-        candidate: nota::MacroCandidate<'_>,
-    ) -> Result<Self, nota::StructuralMacroError<Self::Error>> {
+        candidate: dotos::MacroCandidate<'_>,
+    ) -> Result<Self, dotos::StructuralMacroError<Self::Error>> {
         let blocks = candidate.blocks();
         let source = blocks
             .iter()
             .map(|block| block.reemit_fallback())
             .collect::<Vec<_>>()
             .join(" ");
-        let document = nota::Document::parse(&source)
-            .map_err(|error| nota::StructuralMacroError::MatchedNode(SchemaError::from(error)))?;
+        let document = dotos::Document::parse(&source)
+            .map_err(|error| dotos::StructuralMacroError::MatchedNode(SchemaError::from(error)))?;
         let mut cursor = 0;
         let reference =
             crate::SourceReference::from_blocks_at(document.root_objects(), &mut cursor)
-                .map_err(nota::StructuralMacroError::MatchedNode)?;
+                .map_err(dotos::StructuralMacroError::MatchedNode)?;
         if cursor == document.root_objects().len() {
             Ok(reference.to_type_reference())
         } else {
-            Err(nota::StructuralMacroError::ExpectedSingleRoot {
+            Err(dotos::StructuralMacroError::ExpectedSingleRoot {
                 found: blocks.len(),
             })
         }
     }
 
-    fn to_structural_nota(&self) -> String {
+    fn to_structural_dotos(&self) -> String {
         crate::SourceReference::from_type_reference(self).to_schema_text()
     }
 }
@@ -2701,17 +2701,20 @@ impl TypeReference {
     /// Decode a parenthesized generic payload whose head is a projection
     /// canonical name (`Vector`, `Map`, `Bytes`, …). The head is matched against
     /// the closed projection vocabularies, never dispatched as a free string.
-    fn from_nota_generic_payload(head: &str, children: &[Block]) -> Result<Self, NotaDecodeError> {
+    fn from_dotos_generic_payload(
+        head: &str,
+        children: &[Block],
+    ) -> Result<Self, DotosDecodeError> {
         if let Some(projection) = SingleTypeReferenceProjection::from_canonical_name(head) {
             return Ok(Self::single_type_application(
                 projection,
-                Self::from_nota_block(&children[1])?,
+                Self::from_dotos_block(&children[1])?,
             ));
         }
         if let Some(projection) = MultiTypeReferenceProjection::from_canonical_name(head) {
             let arguments = children[1..]
                 .iter()
-                .map(Self::from_nota_block)
+                .map(Self::from_dotos_block)
                 .collect::<Result<Vec<_>, _>>()?;
             return Ok(Self::multi_type_application(projection, arguments));
         }
@@ -2719,12 +2722,12 @@ impl TypeReference {
             let value = children[1]
                 .demote_to_string()
                 .and_then(|text| text.parse::<u64>().ok())
-                .ok_or(NotaDecodeError::ExpectedAtom {
+                .ok_or(DotosDecodeError::ExpectedAtom {
                     type_name: "value application width",
                 })?;
             return Ok(Self::value_application(projection, value));
         }
-        Err(NotaDecodeError::UnknownVariant {
+        Err(DotosDecodeError::UnknownVariant {
             enum_name: "TypeReference",
             variant: head.to_owned(),
         })
@@ -2733,13 +2736,13 @@ impl TypeReference {
     /// Decode the grouped payload of the canonical `Application` machine
     /// projection — `(head (arg0 arg1 …))`. The head always decodes as
     /// `Local`; import resolution rewrites it to `Imported` later.
-    fn from_nota_application_payload(block: &Block) -> Result<Self, NotaDecodeError> {
-        let children = NotaBlock::new(block).expect_children(
+    fn from_dotos_application_payload(block: &Block) -> Result<Self, DotosDecodeError> {
+        let children = DotosBlock::new(block).expect_children(
             Delimiter::Parenthesis,
             "TypeReference::Application payload",
             2,
         )?;
-        let head = Name::from_nota_block(&children[0])?;
+        let head = Name::from_dotos_block(&children[0])?;
         let argument_blocks = match &children[1] {
             Block::Delimited {
                 delimiter: Delimiter::Parenthesis,
@@ -2747,7 +2750,7 @@ impl TypeReference {
                 ..
             } => root_objects.as_slice(),
             _ => {
-                return Err(NotaDecodeError::ExpectedDelimited {
+                return Err(DotosDecodeError::ExpectedDelimited {
                     type_name: "TypeReference::Application arguments",
                     delimiter: "(",
                 });
@@ -2755,7 +2758,7 @@ impl TypeReference {
         };
         let arguments = argument_blocks
             .iter()
-            .map(Self::from_nota_block)
+            .map(Self::from_dotos_block)
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Self::Application {
             head: ApplicationHead::Local(head),
@@ -2763,7 +2766,7 @@ impl TypeReference {
         })
     }
 
-    /// Lower an already-parsed NOTA block at a reference position into
+    /// Lower an already-parsed DOTOS block at a reference position into
     /// a `TypeReference`. The authored-schema entry accepts the strict dotted
     /// reference projection (`Vector.Topic`, `Map.(Key Value)`) and rejects
     /// the retired parenthesized generic surface.
@@ -2780,7 +2783,7 @@ impl TypeReference {
 /// type constructor. This type exists so macro calls can be inspected,
 /// serialized through assembled schema, and tested as data rather than
 /// disappearing into parser control flow.
-#[derive(nota::NotaDecode, nota::NotaEncode, Clone, Debug, Eq, PartialEq)]
+#[derive(dotos::DotosDecode, dotos::DotosEncode, Clone, Debug, Eq, PartialEq)]
 pub struct SchemaNode {
     tag: Name,
     data: SchemaNodeData,
@@ -2831,7 +2834,7 @@ impl SchemaNode {
     }
 }
 
-#[derive(nota::NotaDecode, nota::NotaEncode, Clone, Debug, Eq, PartialEq)]
+#[derive(dotos::DotosDecode, dotos::DotosEncode, Clone, Debug, Eq, PartialEq)]
 pub enum SchemaNodeData {
     Unit,
     Value(SchemaNodeValue),
@@ -2852,12 +2855,18 @@ impl SchemaNodeData {
                 root_objects,
                 ..
             } => Ok(Self::Map(SchemaNodeMapEntries::new(root_objects).read()?)),
+            Block::Delimited {
+                delimiter: Delimiter::PipeParenthesis | Delimiter::PipeBrace,
+                ..
+            } => Err(SchemaError::MalformedSchemaNode {
+                found: block.reemit_fallback(),
+            }),
             _ => Ok(Self::Value(SchemaNodeValue::from_block(block)?)),
         }
     }
 }
 
-#[derive(nota::NotaDecode, nota::NotaEncode, Clone, Debug, Eq, PartialEq)]
+#[derive(dotos::DotosDecode, dotos::DotosEncode, Clone, Debug, Eq, PartialEq)]
 pub enum SchemaNodeValue {
     Symbol(Name),
     Text(String),
@@ -2869,6 +2878,9 @@ pub enum SchemaNodeValue {
 impl SchemaNodeValue {
     pub fn from_block(block: &Block) -> Result<Self, SchemaError> {
         match block {
+            Block::Application { .. } => Err(SchemaError::MalformedSchemaNode {
+                found: block.reemit_fallback(),
+            }),
             Block::Atom(_) => block.schema_name().map(Self::Symbol),
             Block::PipeText(text) => Ok(Self::Text(text.text.clone())),
             Block::Delimited {
@@ -2885,11 +2897,17 @@ impl SchemaNodeValue {
                 root_objects,
                 ..
             } => Ok(Self::Map(SchemaNodeMapEntries::new(root_objects).read()?)),
+            Block::Delimited {
+                delimiter: Delimiter::PipeParenthesis | Delimiter::PipeBrace,
+                ..
+            } => Err(SchemaError::MalformedSchemaNode {
+                found: block.reemit_fallback(),
+            }),
         }
     }
 }
 
-#[derive(nota::NotaDecode, nota::NotaEncode, Clone, Debug, Eq, PartialEq)]
+#[derive(dotos::DotosDecode, dotos::DotosEncode, Clone, Debug, Eq, PartialEq)]
 pub struct SchemaNodePair {
     key: Name,
     value: SchemaNodeValue,
@@ -2977,6 +2995,11 @@ impl<'schema> SchemaNodeNotation<'schema> {
                 SchemaNodeDelimitedNotation::new(*delimiter).wrap(&children)
             }
             Block::PipeText(text) => format!("[|{}|]", text.text),
+            Block::Application { head, payload, .. } => format!(
+                "{}.{}",
+                Self::new(head).compact(),
+                Self::new(payload).compact()
+            ),
             Block::Atom(atom) => atom.text().to_owned(),
         }
     }
@@ -3004,6 +3027,8 @@ impl SchemaNodeDelimitedNotation {
             Delimiter::Parenthesis => "(",
             Delimiter::SquareBracket => "[",
             Delimiter::Brace => "{",
+            Delimiter::PipeParenthesis => "(|",
+            Delimiter::PipeBrace => "{|",
         }
     }
 
@@ -3012,6 +3037,8 @@ impl SchemaNodeDelimitedNotation {
             Delimiter::Parenthesis => ")",
             Delimiter::SquareBracket => "]",
             Delimiter::Brace => "}",
+            Delimiter::PipeParenthesis => "|)",
+            Delimiter::PipeBrace => "|}",
         }
     }
 }
@@ -3065,7 +3092,7 @@ mod scalar_vocabulary_guard {
         // a conscious decision rather than a silent round-trip break.
         for kind in &TypeReference::SCALAR_KINDS {
             assert_eq!(
-                Some(kind.to_nota().as_str()),
+                Some(kind.to_dotos().as_str()),
                 kind.scalar_name(),
                 "machine wire tag must match the reserved source name",
             );
@@ -3077,7 +3104,7 @@ mod scalar_vocabulary_guard {
 /// reaching [`TrueSchema::from_tree`] — tampered after lowering into a shape the
 /// source reader would never emit — must be rejected identically at every
 /// surface that funnels through `from_tree`: the programmatic tree constructor,
-/// binary (rkyv) decode, and structured NOTA decode. Both the duplicate-binder
+/// binary (rkyv) decode, and structured DOTOS decode. Both the duplicate-binder
 /// guard and the duplicate-declaration guard are witnessed through this one
 /// helper, so the "reject at every surface" scaffold lives here once.
 #[cfg(test)]
@@ -3105,15 +3132,15 @@ mod semantic_boundary_rejection {
             expected,
         );
 
-        // Structured NOTA decode surface. The view's `NotaDecode` wraps the
+        // Structured DOTOS decode surface. The view's `DotosDecode` wraps the
         // schema error as `InvalidValue`, so the typed error surfaces through
         // its rendered reason.
-        let nota = tree.to_nota();
-        let document = nota::Document::parse(&nota).expect("tampered tree NOTA parses");
-        match TrueSchema::from_nota_block(&document.root_objects()[0])
-            .expect_err("NOTA decode must reject the tampered value")
+        let dotos = tree.to_dotos();
+        let document = dotos::Document::parse(&dotos).expect("tampered tree DOTOS parses");
+        match TrueSchema::from_dotos_block(&document.root_objects()[0])
+            .expect_err("DOTOS decode must reject the tampered value")
         {
-            NotaDecodeError::InvalidValue { reason, .. } => {
+            DotosDecodeError::InvalidValue { reason, .. } => {
                 assert_eq!(reason, expected.to_string());
             }
             other => panic!("expected an InvalidValue wrapping the schema error, got {other:?}"),
@@ -3130,7 +3157,7 @@ mod semantic_boundary_rejection {
 /// rejected there too, with the same typed [`SchemaError::DuplicateTypeParameter`].
 /// The rejection is witnessed across every surface that funnels through
 /// `from_tree`: the programmatic tree constructor, binary (rkyv) decode, and
-/// structured NOTA decode. Both a plain generic and a parameterized enum frame
+/// structured DOTOS decode. Both a plain generic and a parameterized enum frame
 /// are covered, since both carry their binders in the one
 /// `Declaration::parameters` list.
 #[cfg(test)]
@@ -3206,7 +3233,7 @@ mod semantic_duplicate_parameter_rejection {
     /// list repeats a name — the tamper the resolver would never emit — into an
     /// otherwise-valid tree, and assert the semantic boundary rejects it with the
     /// same typed error across every decode surface. Without the
-    /// `resolved_imports` walk in `parameters_verified`, a crafted binary or NOTA
+    /// `resolved_imports` walk in `parameters_verified`, a crafted binary or DOTOS
     /// value carrying this import would mint the same colliding member identifier
     /// the guard exists to prevent.
     #[test]

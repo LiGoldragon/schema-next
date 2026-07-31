@@ -1,4 +1,4 @@
-use nota::{Document, NotaDecode, NotaEncode};
+use dotos::{Document, DotosDecode, DotosEncode};
 use schema::{Name, SchemaEngine, SchemaIdentity, SymbolPath, SymbolPathPosition};
 
 struct SymbolPathFixture {
@@ -154,18 +154,18 @@ fn schema_rejects_symbol_paths_that_do_not_match_the_schema_context() {
 }
 
 #[test]
-fn symbol_path_round_trips_through_nota_and_rkyv_as_names_not_free_text() {
+fn symbol_path_round_trips_through_dotos_and_rkyv_as_names_not_free_text() {
     let path = SymbolPath::new([
         Name::new("spirit-next:lib"),
         Name::new("Input"),
         Name::new("Record"),
     ]);
 
-    let nota = path.to_nota();
-    assert_eq!(nota, "(SymbolPath [spirit-next:lib Input Record])");
-    let document = Document::parse(&nota).expect("symbol path nota parses");
+    let dotos = path.to_dotos();
+    assert_eq!(dotos, "(SymbolPath [spirit-next:lib Input Record])");
+    let document = Document::parse(&dotos).expect("symbol path dotos parses");
     let decoded =
-        SymbolPath::from_nota_block(&document.root_objects()[0]).expect("symbol path decodes");
+        SymbolPath::from_dotos_block(&document.root_objects()[0]).expect("symbol path decodes");
     assert_eq!(decoded, path);
     assert_eq!(decoded.to_string(), "spirit-next:lib/Input/Record");
 
@@ -178,7 +178,7 @@ fn symbol_path_round_trips_through_nota_and_rkyv_as_names_not_free_text() {
 #[test]
 fn symbol_path_rejects_opaque_string_shapes() {
     let document = Document::parse("(SymbolPath spirit-next:lib/Input/Record)")
-        .expect("opaque path shape still parses as nota");
-    let _error = SymbolPath::from_nota_block(&document.root_objects()[0])
+        .expect("opaque path shape still parses as dotos");
+    let _error = SymbolPath::from_dotos_block(&document.root_objects()[0])
         .expect_err("symbol path body must be a vector of names");
 }

@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use nota::{Document, SourcePosition, SourceSpan};
+use dotos::{Document, SourcePosition, SourceSpan};
 
 use crate::{
     ImportResolver, Name, SchemaEngine, SchemaError, SchemaModuleSource, SchemaPackage,

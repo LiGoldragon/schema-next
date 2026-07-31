@@ -9,7 +9,7 @@
 //!
 //! (a) a multi-arg user generic application lowers to `Application` and
 //!     round-trips byte-stable through both the rkyv codec and the canonical
-//!     NOTA codec;
+//!     DOTOS codec;
 //! (b) the built-in heads `Vector.X`, `Optional.X`, and `Map.(K V)` still
 //!     lower to their dedicated variants through the same dispatch, and a
 //!     built-in head wins over the broad application form (dispatch ORDER);
@@ -24,7 +24,7 @@
 //! parameterized head is arity-checked at lowering, and the declared head
 //! is consulted before the broad application form.
 
-use nota::{Document, NotaDecode, NotaEncode};
+use dotos::{Document, DotosDecode, DotosEncode};
 use schema::{
     ApplicationHead, Name, Root, SchemaEngine, SchemaError, SchemaIdentity, SchemaSourceArtifact,
     SingleTypeReferenceProjection, TypeDeclaration, TypeReference,
@@ -90,18 +90,18 @@ fn application_round_trips_byte_stable_through_rkyv() {
 }
 
 #[test]
-fn application_round_trips_through_canonical_nota_codec() {
+fn application_round_trips_through_canonical_dotos_codec() {
     let reference = TypeReference::Application {
         head: ApplicationHead::Local(Name::new("Foo")),
         arguments: vec![TypeReference::new("Alpha"), TypeReference::new("Beta")],
     };
-    let text = reference.to_nota();
-    let document = Document::parse(&text).expect("application NOTA parses");
-    let decoded = TypeReference::from_nota_block(&document.root_objects()[0])
-        .expect("application decodes from canonical NOTA");
+    let text = reference.to_dotos();
+    let document = Document::parse(&text).expect("application DOTOS parses");
+    let decoded = TypeReference::from_dotos_block(&document.root_objects()[0])
+        .expect("application decodes from canonical DOTOS");
     assert_eq!(decoded, reference);
     // The re-encode is byte-identical to the first projection.
-    assert_eq!(decoded.to_nota(), text);
+    assert_eq!(decoded.to_dotos(), text);
 }
 
 // (b) built-ins still lower through the seam, and a built-in head wins over

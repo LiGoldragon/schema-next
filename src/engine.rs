@@ -1,4 +1,4 @@
-use nota::{Block, Delimiter, Document, DottedExpectation, NotaBody, NotaEncode};
+use dotos::{Block, Delimiter, Document, DotosBody, DotosEncode, DottedExpectation};
 
 use crate::{
     ImportResolver, SchemaSource, TrueSchema,
@@ -18,8 +18,8 @@ use crate::{
     rkyv::Archive,
     rkyv::Serialize,
     rkyv::Deserialize,
-    nota::NotaDecode,
-    nota::NotaEncode,
+    dotos::DotosDecode,
+    dotos::DotosEncode,
     Clone,
     Debug,
     Eq,
@@ -49,10 +49,10 @@ impl SchemaIdentity {
 
 #[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum SchemaError {
-    #[error("NOTA parse error: {0}")]
-    Nota(#[from] nota::NotaError),
-    #[error("NOTA decode error: {0}")]
-    NotaDecode(#[from] nota::NotaDecodeError),
+    #[error("DOTOS parse error: {0}")]
+    Dotos(#[from] dotos::DotosError),
+    #[error("DOTOS decode error: {0}")]
+    DotosDecode(#[from] dotos::DotosDecodeError),
     #[error("structural macro parse error: {0}")]
     StructuralMacroParse(String),
     #[error("rkyv archive encoding failed")]
@@ -302,10 +302,10 @@ pub enum SchemaError {
     MalformedLocalName { name: String },
 }
 
-impl From<nota::MacroError> for SchemaError {
-    fn from(value: nota::MacroError) -> Self {
+impl From<dotos::MacroError> for SchemaError {
+    fn from(value: dotos::MacroError) -> Self {
         match value {
-            nota::MacroError::NoMatch {
+            dotos::MacroError::NoMatch {
                 position,
                 expected,
                 found,
@@ -315,7 +315,7 @@ impl From<nota::MacroError> for SchemaError {
                 expected,
                 found,
             },
-            nota::MacroError::Conflict(conflict) => Self::UnsupportedMacroNodeStructure {
+            dotos::MacroError::Conflict(conflict) => Self::UnsupportedMacroNodeStructure {
                 position: "structural macro registry".to_owned(),
                 expected: vec![format!(
                     "non-conflicting macro cases, found conflict between {} and {}",
@@ -328,10 +328,10 @@ impl From<nota::MacroError> for SchemaError {
     }
 }
 
-impl From<nota::StructuralVariantError> for SchemaError {
-    fn from(value: nota::StructuralVariantError) -> Self {
+impl From<dotos::StructuralVariantError> for SchemaError {
+    fn from(value: dotos::StructuralVariantError) -> Self {
         match value {
-            nota::StructuralVariantError::NoMatch {
+            dotos::StructuralVariantError::NoMatch {
                 position,
                 expected,
                 found,
@@ -341,7 +341,7 @@ impl From<nota::StructuralVariantError> for SchemaError {
                 expected,
                 found,
             },
-            nota::StructuralVariantError::Conflict(conflict) => {
+            dotos::StructuralVariantError::Conflict(conflict) => {
                 Self::UnsupportedMacroNodeStructure {
                     position: "structural macro node enum".to_owned(),
                     expected: vec![format!(
@@ -356,42 +356,42 @@ impl From<nota::StructuralVariantError> for SchemaError {
     }
 }
 
-impl From<nota::StructuralMacroError<SchemaError>> for SchemaError {
-    fn from(value: nota::StructuralMacroError<SchemaError>) -> Self {
+impl From<dotos::StructuralMacroError<SchemaError>> for SchemaError {
+    fn from(value: dotos::StructuralMacroError<SchemaError>) -> Self {
         match value {
-            nota::StructuralMacroError::Parse { error } => Self::StructuralMacroParse(error),
-            nota::StructuralMacroError::ExpectedSingleRoot { found } => {
+            dotos::StructuralMacroError::Parse { error } => Self::StructuralMacroParse(error),
+            dotos::StructuralMacroError::ExpectedSingleRoot { found } => {
                 Self::ExpectedRootObjectCount {
                     expected: "one structural macro node root object",
                     found,
                 }
             }
-            nota::StructuralMacroError::Dispatch(error) => Self::from(error),
-            nota::StructuralMacroError::MatchedNode(error) => error,
+            dotos::StructuralMacroError::Dispatch(error) => Self::from(error),
+            dotos::StructuralMacroError::MatchedNode(error) => error,
         }
     }
 }
 
-impl From<nota::StructuralMacroNodeError> for SchemaError {
-    fn from(value: nota::StructuralMacroNodeError) -> Self {
+impl From<dotos::StructuralMacroNodeError> for SchemaError {
+    fn from(value: dotos::StructuralMacroNodeError) -> Self {
         Self::MalformedSchemaNode {
             found: value.to_string(),
         }
     }
 }
 
-impl From<nota::StructuralMacroError<nota::StructuralMacroNodeError>> for SchemaError {
-    fn from(value: nota::StructuralMacroError<nota::StructuralMacroNodeError>) -> Self {
+impl From<dotos::StructuralMacroError<dotos::StructuralMacroNodeError>> for SchemaError {
+    fn from(value: dotos::StructuralMacroError<dotos::StructuralMacroNodeError>) -> Self {
         match value {
-            nota::StructuralMacroError::Parse { error } => Self::StructuralMacroParse(error),
-            nota::StructuralMacroError::ExpectedSingleRoot { found } => {
+            dotos::StructuralMacroError::Parse { error } => Self::StructuralMacroParse(error),
+            dotos::StructuralMacroError::ExpectedSingleRoot { found } => {
                 Self::ExpectedRootObjectCount {
                     expected: "one structural macro node root object",
                     found,
                 }
             }
-            nota::StructuralMacroError::Dispatch(error) => Self::from(error),
-            nota::StructuralMacroError::MatchedNode(error) => Self::from(error),
+            dotos::StructuralMacroError::Dispatch(error) => Self::from(error),
+            dotos::StructuralMacroError::MatchedNode(error) => Self::from(error),
         }
     }
 }
@@ -686,12 +686,12 @@ impl<'schema> KeyValueDeclaration<'schema> {
         let (name, parameters) = DeclarationHead::from_block(self.pair.name)?.into_parts();
         let value = match self.pair.definition {
             Block::Delimited {
-                delimiter: nota::Delimiter::Brace,
+                delimiter: dotos::Delimiter::Brace,
                 root_objects,
                 ..
             } => self.lower_struct(name, root_objects, registry, context)?,
             Block::Delimited {
-                delimiter: nota::Delimiter::SquareBracket,
+                delimiter: dotos::Delimiter::SquareBracket,
                 root_objects,
                 ..
             } => self.lower_enum(name, root_objects, registry, context)?,
@@ -802,7 +802,7 @@ impl SchemaMacroHandler for RootImportsMacro {
         self.signature.remember(position, context);
         let body = object.delimited_body(Delimiter::Brace, self.signature.expected_delimiter())?;
 
-        // Each import entry is one dotted map entry read through the shared NOTA
+        // Each import entry is one dotted map entry read through the shared DOTOS
         // reader, walking by consumed blocks rather than fixed pairs.
         let mut imports = Vec::new();
         let objects = body.root_objects();
@@ -861,11 +861,11 @@ impl SchemaMacroHandler for RootNamespaceMacro {
 
 #[derive(Clone, Copy, Debug)]
 struct NamespaceBlock<'schema> {
-    body: NotaBody<'schema>,
+    body: DotosBody<'schema>,
 }
 
 impl<'schema> NamespaceBlock<'schema> {
-    fn new(body: NotaBody<'schema>) -> Self {
+    fn new(body: DotosBody<'schema>) -> Self {
         Self { body }
     }
 
@@ -977,6 +977,14 @@ impl<'schema> NamespaceEntryWalk<'schema> {
             return Ok(None);
         };
         self.cursor += 1;
+        if let Block::Application {
+            head: name,
+            payload: definition,
+            ..
+        } = head
+        {
+            return Ok(Some(NamespaceEntry { name, definition }));
+        }
         let ends_at_dot = matches!(head, Block::Atom(atom) if atom.text().ends_with('.'));
         let definition = if ends_at_dot {
             let Some(next) = self.objects.get(self.cursor) else {
@@ -1078,7 +1086,7 @@ impl<'schema> RootApplicationBlock<'schema> {
         let TypeReference::Application { head, arguments } = reference else {
             return Err(SchemaError::ExpectedRootApplication {
                 position: self.position_name,
-                found: reference.to_nota(),
+                found: reference.to_dotos(),
             });
         };
         Ok(RootApplication::new(
@@ -1097,7 +1105,7 @@ struct RootEnumBlock<'schema> {
 
 impl<'schema> RootEnumBlock<'schema> {
     fn from_block(object: &'schema Block, enum_name: &'static str) -> Result<Self, SchemaError> {
-        let body = NotaBody::from_delimited(object, Delimiter::SquareBracket, "root enum body")?;
+        let body = DotosBody::from_delimited(object, Delimiter::SquareBracket, "root enum body")?;
         Ok(Self {
             variants: body.root_objects(),
             enum_name,

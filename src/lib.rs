@@ -28,6 +28,11 @@ pub use declarative::{
     MacroPatternDelimited, MacroPatternObject, MacroTemplate, MacroTemplateDelimited,
     MacroTemplateObject, SchemaMacro, TypeTemplate,
 };
+pub use dotos::{
+    AtomCase, AtomShape, CaptureName, DelimitedShape, MacroCandidate,
+    MacroDelimiter as DotosMacroDelimiter, MacroNodeDefinition as DotosMacroNodeDefinition,
+    MacroObjectCount, Pattern, PatternElement, PositionPredicate, SigilPosition, SigilSpec,
+};
 pub use engine::{SchemaEngine, SchemaError, SchemaIdentity};
 pub use environment::{
     SchemaEnvironment, SchemaEnvironmentManifest, SchemaEnvironmentModule, SchemaEnvironmentResult,
@@ -44,12 +49,9 @@ pub use macros::{
     MacroPosition, MacroRegistry, SchemaMacroHandler,
 };
 pub use module::{SchemaModuleSource, SchemaPackage};
-pub use nota::{
-    AtomCase, AtomShape, CaptureName, DelimitedShape, MacroCandidate,
-    MacroDelimiter as NotaMacroDelimiter, MacroNodeDefinition as NotaMacroNodeDefinition,
-    MacroObjectCount, Pattern, PatternElement, PositionPredicate, SigilPosition, SigilSpec,
+pub use raw::{
+    RawDatatypeEntry, RawDatatypeMap, RawDotosDatatype, RawDotosSequence, RawSchemaFile,
 };
-pub use raw::{RawDatatypeEntry, RawDatatypeMap, RawNotaDatatype, RawNotaSequence, RawSchemaFile};
 pub use resolution::{ImportResolver, ImportSource, ResolvedImport};
 pub use schema::{
     ApplicationHead, Declaration, DeclarationHead, EnumDeclaration, EnumVariant, FieldDeclaration,

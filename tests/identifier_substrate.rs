@@ -2,7 +2,7 @@
 //! order-independent minting; nominal distinctness; rename-through-table
 //! identifier preservation; and fresh minting on a re-association miss.
 
-use nota::{Document, NotaDecode, NotaEncode};
+use dotos::{Document, DotosDecode, DotosEncode};
 use schema::{DeclarationKind, Name, NameTable, NominalIdentifier};
 
 fn declaration(name: &str) -> (DeclarationKind, Name) {
@@ -176,15 +176,15 @@ fn rename_to_a_name_held_by_a_different_identifier_is_rejected() {
 }
 
 #[test]
-fn nominal_identifier_round_trips_through_nota() {
+fn nominal_identifier_round_trips_through_dotos() {
     let identifier = NominalIdentifier::mint(DeclarationKind::Field, "Entry.domains");
-    let nota = identifier.to_nota();
-    let document = Document::parse(&nota).expect("identifier NOTA parses");
-    let decoded = NominalIdentifier::from_nota_block(&document.root_objects()[0])
+    let dotos = identifier.to_dotos();
+    let document = Document::parse(&dotos).expect("identifier DOTOS parses");
+    let decoded = NominalIdentifier::from_dotos_block(&document.root_objects()[0])
         .expect("identifier decodes from its (Kind hex-digest) projection");
     assert_eq!(
         decoded, identifier,
-        "a nominal identifier survives a NOTA encode/decode round-trip exactly",
+        "a nominal identifier survives a DOTOS encode/decode round-trip exactly",
     );
 }
 
